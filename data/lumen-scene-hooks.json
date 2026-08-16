@@ -1,0 +1,6 @@
+{
+  "stage_canvas": { "w": 1536, "h": 864 },
+  "player_spawn": { "x": 72, "y": 428 },
+  "camera_bounds": { "x": 0, "y": 0, "w": 3200, "h": 540 },
+  "exits": [{ "id": "flag", "x": 3040, "y": 358 }]
+}

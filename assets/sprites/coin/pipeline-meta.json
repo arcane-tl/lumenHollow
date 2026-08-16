@@ -1,0 +1,175 @@
+{
+  "target": "asset",
+  "mode": "projectile",
+  "prompt": "",
+  "role": "",
+  "input": "/workspace/assets/sprites/coin-raw.jpg",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 200,
+  "rows": 2,
+  "cols": 2,
+  "cell_size": 160,
+  "fit_scale": 0.72,
+  "trim_border": 4,
+  "edge_clean_depth": 3,
+  "align": "center",
+  "shared_scale": true,
+  "component_mode": "largest",
+  "component_padding": 0,
+  "min_component_area": 1,
+  "edge_touch_margin": 0,
+  "frame_labels": [
+    "projectile-1",
+    "projectile-2",
+    "projectile-3",
+    "projectile-4"
+  ],
+  "frames": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "source_box": [
+        0,
+        0,
+        704,
+        704
+      ],
+      "component_mode": "largest",
+      "component_count": 1,
+      "selected_component_area": 91669,
+      "selected_component_bbox": [
+        182,
+        193,
+        522,
+        537
+      ],
+      "crop_bbox": [
+        182,
+        193,
+        522,
+        537
+      ],
+      "edge_touch": false,
+      "output_size": [
+        113,
+        114
+      ],
+      "paste_position": [
+        23,
+        23
+      ]
+    },
+    {
+      "grid": [
+        0,
+        1
+      ],
+      "source_box": [
+        704,
+        0,
+        1408,
+        704
+      ],
+      "component_mode": "largest",
+      "component_count": 1,
+      "selected_component_area": 53102,
+      "selected_component_bbox": [
+        249,
+        194,
+        436,
+        537
+      ],
+      "crop_bbox": [
+        249,
+        194,
+        436,
+        537
+      ],
+      "edge_touch": false,
+      "output_size": [
+        62,
+        114
+      ],
+      "paste_position": [
+        49,
+        23
+      ]
+    },
+    {
+      "grid": [
+        1,
+        0
+      ],
+      "source_box": [
+        0,
+        704,
+        704,
+        1408
+      ],
+      "component_mode": "largest",
+      "component_count": 1,
+      "selected_component_area": 56540,
+      "selected_component_bbox": [
+        251,
+        143,
+        451,
+        488
+      ],
+      "crop_bbox": [
+        251,
+        143,
+        451,
+        488
+      ],
+      "edge_touch": false,
+      "output_size": [
+        66,
+        115
+      ],
+      "paste_position": [
+        47,
+        22
+      ]
+    },
+    {
+      "grid": [
+        1,
+        1
+      ],
+      "source_box": [
+        704,
+        704,
+        1408,
+        1408
+      ],
+      "component_mode": "largest",
+      "component_count": 1,
+      "selected_component_area": 91936,
+      "selected_component_bbox": [
+        173,
+        144,
+        513,
+        488
+      ],
+      "crop_bbox": [
+        173,
+        144,
+        513,
+        488
+      ],
+      "edge_touch": false,
+      "output_size": [
+        113,
+        114
+      ],
+      "paste_position": [
+        23,
+        23
+      ]
+    }
+  ],
+  "edge_touch_frames": []
+}
