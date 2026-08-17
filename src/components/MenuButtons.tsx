@@ -30,6 +30,8 @@ export function MenuButtons({
   const itemsRef = useRef(items);
   const onActiveRef = useRef(onActive);
   const onCancelRef = useRef(onCancel);
+  const hoverOk = useRef(false);
+  const keysOk = useRef(false);
   iRef.current = i;
   itemsRef.current = items;
   onActiveRef.current = onActive;
@@ -39,8 +41,24 @@ export function MenuButtons({
   useEffect(() => {
     setI(0);
     iRef.current = 0;
+    hoverOk.current = false;
+    keysOk.current = false;
     const first = itemsRef.current[0];
     if (first) onActiveRef.current?.(first.id, 0);
+    const onMove = () => {
+      hoverOk.current = true;
+    };
+    const armKeys = () => {
+      keysOk.current = true;
+    };
+    const wait = window.setTimeout(armKeys, 200);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("keyup", armKeys);
+    return () => {
+      window.clearTimeout(wait);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("keyup", armKeys);
+    };
   }, [ids]);
 
   useEffect(() => {
@@ -54,6 +72,11 @@ export function MenuButtons({
       const list = itemsRef.current;
       if (!list.length) return;
       if (NEXT.has(e.code)) {
+        if (!keysOk.current) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return;
+        }
         e.preventDefault();
         e.stopImmediatePropagation();
         const n = (iRef.current + 1) % list.length;
@@ -62,6 +85,11 @@ export function MenuButtons({
         return;
       }
       if (PREV.has(e.code)) {
+        if (!keysOk.current) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return;
+        }
         e.preventDefault();
         e.stopImmediatePropagation();
         const n = (iRef.current - 1 + list.length) % list.length;
@@ -77,6 +105,11 @@ export function MenuButtons({
         return;
       }
       if (e.code === "Space" || e.code === "Enter") {
+        if (!keysOk.current) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return;
+        }
         e.preventDefault();
         e.stopImmediatePropagation();
         list[iRef.current]?.onPick();
@@ -97,6 +130,7 @@ export function MenuButtons({
           className={cn(idx === i && "ring-2 ring-accent", align === "start" && "justify-start px-5")}
           onClick={it.onPick}
           onMouseEnter={() => {
+            if (!hoverOk.current) return;
             iRef.current = idx;
             setI(idx);
           }}
