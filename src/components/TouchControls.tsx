@@ -6,7 +6,9 @@ import { cn } from "@/lib/utils";
 const TOUCH_PRIMARY = "(hover: none) and (pointer: coarse)";
 
 export function useTouchPrimary() {
-  const [on, setOn] = useState(false);
+  const [on, setOn] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(TOUCH_PRIMARY).matches,
+  );
   useEffect(() => {
     const mq = window.matchMedia(TOUCH_PRIMARY);
     const apply = () => setOn(mq.matches);

@@ -6,7 +6,7 @@ import { TouchControls, useTouchPrimary } from "@/components/TouchControls";
 import { mountGame, type GameHandle } from "@/game/loop";
 import { LEVELS } from "@/game/levels";
 import { useGameStore } from "@/game/store";
-import { formatTime, loadSave, scoresFor, SCORE_LIMIT } from "@/game/save";
+import { formatTime, loadSave, scoresFor, NAME_MAX, SCORE_LIMIT } from "@/game/save";
 import { previewRankList } from "@/game/scores";
 import { fetchLevelScores, isCloudOn } from "@/game/cloud";
 import { onHudTime } from "@/game/hudTime";
@@ -174,15 +174,22 @@ export function GameApp() {
   );
 }
 
+function sanitizeName(raw: string) {
+  return raw.toUpperCase().replace(/[^A-Z0-9 ._\-]/g, "").slice(0, NAME_MAX);
+}
+
 function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   const save = useGameStore((s) => s.save);
   const levelId = useGameStore((s) => s.levelId);
   const coins = useGameStore((s) => s.coins);
   const total = useGameStore((s) => s.totalCoins);
   const time = useGameStore((s) => s.runTime);
+  const touch = useTouchPrimary();
   const [name, setName] = useState("");
   const [blink, setBlink] = useState(true);
+  const [kb, setKb] = useState(0);
   const nameRef = useRef(name);
+  const fieldRef = useRef<HTMLInputElement>(null);
   nameRef.current = name;
   const cloud = useGameStore((s) => s.cloudByLevel[levelId]);
   const boardSource = cloud ?? scoresFor(save, levelId);
@@ -195,6 +202,31 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   }, []);
 
   useEffect(() => {
+    if (!touch) return;
+    const el = fieldRef.current;
+    if (!el) return;
+    const id = window.requestAnimationFrame(() => el.focus());
+    return () => window.cancelAnimationFrame(id);
+  }, [touch]);
+
+  useEffect(() => {
+    if (!touch) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const sync = () => {
+      setKb(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+    };
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    sync();
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+    };
+  }, [touch]);
+
+  useEffect(() => {
+    if (touch) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat && e.code !== "Backspace") return;
       if (e.code === "Enter") {
@@ -212,25 +244,61 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
       if (e.key.length === 1 && /[a-zA-Z0-9 ._\-]/.test(e.key)) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        setName((s) => (s + e.key.toUpperCase()).slice(0, 12));
+        setName((s) => sanitizeName(s + e.key));
       }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [onSubmit]);
+  }, [onSubmit, touch]);
 
   const board = [...boardSource];
   board.splice(rank - 1, 0, { name, coins, time, at: 0 });
   const rows = board.slice(0, SCORE_LIMIT);
 
+  const commit = () => onSubmit(nameRef.current);
+
   return (
-    <div className="absolute inset-0 z-20 grid place-items-center bg-bg/70 px-4 backdrop-blur-[2px]">
+    <div
+      className={cn(
+        "absolute inset-0 z-20 grid bg-bg/70 px-4 backdrop-blur-[2px]",
+        touch ? "items-start overflow-auto pt-6" : "place-items-center",
+      )}
+      style={touch && kb ? { paddingBottom: kb + 16 } : undefined}
+    >
       <div className="w-full max-w-lg rounded-xl border border-border bg-surface p-5 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">New high score</p>
         <h2 className="mt-1 font-display text-2xl leading-tight">{trail}</h2>
         <p className="mt-1 text-sm text-muted">
           Rank #{rank} · {coins}/{total} · {formatTime(time)}
         </p>
+        {touch && (
+          <form
+            className="mt-4 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              commit();
+            }}
+          >
+            <input
+              ref={fieldRef}
+              name="arcade-name"
+              aria-label="High score name"
+              value={name}
+              maxLength={NAME_MAX}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              enterKeyHint="done"
+              inputMode="text"
+              placeholder="YOUR NAME"
+              className="min-w-0 flex-1 rounded-md border border-border bg-bg px-3 text-fg outline-none placeholder:text-muted focus-visible:ring-2 focus-visible:ring-accent/50"
+              style={{ fontSize: 16, height: 44 }}
+              onChange={(e) => setName(sanitizeName(e.target.value))}
+            />
+            <Button type="submit">Save</Button>
+          </form>
+        )}
         <ol className="mt-4 font-sans text-sm">
           <li className="grid grid-cols-[2rem_1fr_4.5rem_5rem] gap-2 px-2 pb-1 text-[11px] uppercase tracking-wider text-muted">
             <span>#</span>
@@ -253,10 +321,14 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
                 <span>{i + 1}</span>
                 <span className={cn("truncate tracking-wide", mine && "font-medium text-fg")}>
                   {mine ? (
-                    <>
-                      {name || ""}
-                      <span className={cn("inline-block w-2", blink ? "opacity-100" : "opacity-0")}>_</span>
-                    </>
+                    touch ? (
+                      name || "—"
+                    ) : (
+                      <>
+                        {name || ""}
+                        <span className={cn("inline-block w-2", blink ? "opacity-100" : "opacity-0")}>_</span>
+                      </>
+                    )
                   ) : (
                     row?.name ?? "—"
                   )}
@@ -267,7 +339,9 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
             );
           })}
         </ol>
-        <p className="mt-4 text-center text-xs tracking-wide text-muted">Type your name · Enter to save</p>
+        <p className="mt-4 text-center text-xs tracking-wide text-muted">
+          {touch ? "Tap the field to type · Save when you’re done" : "Type your name · Enter to save"}
+        </p>
       </div>
     </div>
   );
