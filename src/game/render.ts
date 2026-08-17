@@ -276,29 +276,21 @@ function drawHazard(ctx: CanvasRenderingContext2D, images: GameImages | null, h:
     return;
   }
   const pulse = 0.5 + Math.sin(time * 5.2) * 0.18;
-  const visH = h.h + 6;
-  const visY = h.y - 4;
-
-  ctx.fillStyle = "rgba(20, 10, 10, 0.62)";
-  ctx.fillRect(h.x - 4, h.y + h.h - 8, h.w + 8, 14);
-  ctx.fillStyle = `rgba(196, 72, 54, ${0.18 + pulse * 0.1})`;
-  ctx.fillRect(h.x - 8, h.y - 6, h.w + 16, h.h + 14);
-
-  drawIronTeeth(ctx, h, pulse);
+  const visH = h.h + 8;
+  const visY = h.y - 6;
 
   if (images) {
-    const n = Math.max(1, Math.round(h.w / 70));
+    const n = Math.max(1, Math.round(h.w / 64));
     const tw = h.w / n;
-    ctx.save();
-    ctx.globalAlpha = 0.92;
     for (let i = 0; i < n; i++) {
-      ctx.drawImage(images.spikes, h.x + i * tw - 2, visY, tw + 4, visH);
+      ctx.drawImage(images.spikes, h.x + i * tw - 1, visY, tw + 2, visH);
     }
-    ctx.restore();
+  } else {
+    drawIronTeeth(ctx, h, pulse);
   }
 
-  ctx.fillStyle = `rgba(236, 132, 96, ${0.16 + pulse * 0.1})`;
-  ctx.fillRect(h.x + 2, h.y + h.h - 3, h.w - 4, 3);
+  ctx.fillStyle = `rgba(236, 132, 96, ${0.18 + pulse * 0.1})`;
+  ctx.fillRect(h.x + 2, h.y + h.h - 3, h.w - 4, 2);
 }
 
 function drawCheckpoint(
@@ -332,11 +324,15 @@ function drawCheckpointLight(
 ) {
   if (!cp.active) return;
   const cx = cp.x + cp.w / 2;
-  const lampY = cp.y + 14;
-  const pulse = 0.55 + Math.sin(time * 6.2) * 0.12;
-  ctx.fillStyle = `rgba(255, 196, 90, ${pulse})`;
+  const lampY = cp.y + 16;
+  const pulse = 0.5 + Math.sin(time * 6.2) * 0.12;
+  ctx.fillStyle = `rgba(255, 186, 78, ${0.1 + pulse * 0.08})`;
   ctx.beginPath();
-  ctx.arc(cx, lampY, 10, 0, Math.PI * 2);
+  ctx.arc(cx, lampY, 26, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(255, 220, 140, ${0.22 + pulse * 0.1})`;
+  ctx.beginPath();
+  ctx.arc(cx, lampY, 12, 0, Math.PI * 2);
   ctx.fill();
 }
 
