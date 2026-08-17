@@ -91,6 +91,9 @@ export class Input {
     if (on) {
       this.keys.clear();
       this.jumpArmed = false;
+      this.touchLeft = false;
+      this.touchRight = false;
+      this.touchJump = false;
     }
   }
 

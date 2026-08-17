@@ -5,7 +5,6 @@ dist
 .tanstack
 .nitro
 .wrangler
-.grok
 .env
 .env.*
 !.env.example
@@ -19,5 +18,19 @@ data/*.sqlite
 *.local
 __pycache__
 *.pyc
-AGENTS.md
 startup.sh
+
+# Grok / agent tooling — keep local. Do not ignore public/__grok or scripts/grok-pwa-*.
+.grok/
+AGENTS.md
+GROK.md
+.agents/
+.agent/
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+.cursor/
+.cursorrules
+.codex/
+GEMINI.md
+.gemini/

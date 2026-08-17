@@ -2,7 +2,7 @@
 
 A dusk-wood 2D platformer. Run, jump, and double-jump through mossy ruins. Light the lanterns. Reach the flag.
 
-Play with **arrow keys** and **Space**. A / D / W are optional.
+Play with **arrow keys** and **Space**. A / D / W are optional. On a phone, use the on-screen arrows and Jump.
 
 ## Run locally
 
@@ -43,3 +43,4 @@ The anon key is meant to be public. Row Level Security on the `scores` table all
 | Space | Jump / double-jump |
 | Esc | Pause |
 | M | Mute |
+| Phone | On-screen ← → and Jump (does not crop the play area) |

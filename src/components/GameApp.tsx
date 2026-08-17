@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Flag, Flame, LogOut, Map, Pause, Play, RotateCcw, Trophy, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MenuButtons } from "@/components/MenuButtons";
+import { TouchControls, useTouchPrimary } from "@/components/TouchControls";
 import { mountGame, type GameHandle } from "@/game/loop";
 import { LEVELS } from "@/game/levels";
 import { useGameStore } from "@/game/store";
@@ -16,6 +17,7 @@ export function GameApp() {
   const gameRef = useRef<GameHandle | null>(null);
   const overlay = useGameStore((s) => s.overlay);
   const ready = useGameStore((s) => s.ready);
+  const touchPrimary = useTouchPrimary();
 
   useEffect(() => {
     useGameStore.getState().applySave(loadSave());
@@ -75,7 +77,9 @@ export function GameApp() {
 
       {playing && <PlayHud />}
 
-      {overlay === "none" && (
+      <TouchControls active={overlay === "none"} input={() => gameRef.current?.input} />
+
+      {overlay === "none" && !touchPrimary && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 hidden items-end justify-center p-3 pb-3 md:flex">
           <ControlLegend />
         </div>
@@ -118,7 +122,7 @@ export function GameApp() {
               ]}
             />
             <div className="mt-6 flex justify-center">
-              <ControlLegend />
+              <ControlLegend touch={touchPrimary} />
             </div>
           </div>
         </div>
@@ -585,7 +589,14 @@ function Kbd({ children }: { children: ReactNode }) {
   );
 }
 
-function ControlLegend() {
+function ControlLegend({ touch = false }: { touch?: boolean }) {
+  if (touch) {
+    return (
+      <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-lg border border-border bg-bg/90 px-3 py-2 font-sans text-sm font-medium tracking-wide text-fg">
+        On-screen arrows move · Jump on the right
+      </div>
+    );
+  }
   return (
     <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-lg border border-border bg-bg/90 px-3 py-2 font-sans text-sm font-medium tracking-wide text-fg">
       <Kbd>←</Kbd>

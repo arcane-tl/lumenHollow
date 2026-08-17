@@ -39,6 +39,7 @@ declare global {
       getGrounded?: () => boolean;
       getVy?: () => number;
       armJump?: () => void;
+      setTouch?: (partial: { left?: boolean; right?: boolean; jump?: boolean }) => void;
       startLevel?: (id: number) => void;
       setOverlay?: (name: string) => void;
       forceQualify?: () => void;
@@ -257,6 +258,7 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
     getGrounded: () => sim?.player.grounded ?? false,
     getVy: () => sim?.player.vy ?? 0,
     armJump: () => input.armJump(),
+    setTouch: (partial) => input.setTouch(partial),
     startLevel: (id: number) => startLevel(id),
     setOverlay: (name: string) => store().setOverlay(name as import("./types").Overlay),
     forceQualify: () => {
