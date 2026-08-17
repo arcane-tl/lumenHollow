@@ -202,6 +202,7 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   const time = useGameStore((s) => s.runTime);
   const touch = useTouchPrimary();
   const [name, setName] = useState("");
+  const [editing, setEditing] = useState(false);
   const nameRef = useRef(name);
   const fieldRef = useRef<HTMLInputElement>(null);
   const snapRef = useRef<{ source: ScoreEntry[]; rank: number } | null>(null);
@@ -283,55 +284,51 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
                 key={row ? `${row.at}-${i}` : `empty-${i}`}
                 className={cn(
                   "grid grid-cols-[2rem_1fr_4.5rem_5rem] items-baseline gap-2 rounded-md px-2 py-1.5 tabular-nums",
-                  touch && "grid-cols-[1.5rem_1fr_3.25rem_4.25rem] gap-1.5 px-1 py-1",
-                  touch && mine && "relative min-h-11 items-center",
+                  touch && "grid-cols-[1.5rem_1fr_3.25rem_4.25rem] items-center gap-1.5 px-1 py-1",
                   mine && "bg-accent/15 text-fg",
                   !mine && "text-muted",
                 )}
               >
-                {touch && mine && (
-                  <input
-                    ref={fieldRef}
-                    name="arcade-name"
-                    aria-label="High score name"
-                    value={name}
-                    maxLength={NAME_MAX}
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="characters"
-                    spellCheck={false}
-                    enterKeyHint="done"
-                    inputMode="text"
-                    className="absolute inset-0 z-10 m-0 h-full w-full border-0 p-0 outline-none"
-                    style={{
-                      fontSize: 16,
-                      color: "transparent",
-                      caretColor: "transparent",
-                      WebkitAppearance: "none",
-                      background: "transparent",
-                    }}
-                    onChange={(e) => setName(sanitizeName(e.target.value))}
-                    onKeyDown={(e) => {
-                      if (e.key !== "Enter") return;
-                      e.preventDefault();
-                      onSubmit(nameRef.current);
-                    }}
-                  />
-                )}
                 <span>{i + 1}</span>
                 <span
                   className={cn(
                     "tracking-wide",
                     !mine && "truncate",
-                    mine && "font-medium text-fg",
+                    mine && "flex min-w-0 items-baseline font-medium text-fg",
                   )}
                 >
                   {mine ? (
                     touch ? (
-                      <span className="pointer-events-none">
-                        {name}
-                        <span className="arcade-blink inline-block w-2">_</span>
-                      </span>
+                      <>
+                        <input
+                          ref={fieldRef}
+                          name="arcade-name"
+                          aria-label="High score name"
+                          value={name}
+                          maxLength={NAME_MAX}
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="characters"
+                          spellCheck={false}
+                          enterKeyHint="done"
+                          inputMode="text"
+                          className="m-0 min-w-[3ch] flex-1 border-0 bg-transparent p-0 font-medium tracking-wide text-fg outline-none"
+                          style={{ fontSize: 16, WebkitAppearance: "none" }}
+                          onFocus={() => setEditing(true)}
+                          onBlur={() => setEditing(false)}
+                          onTouchEnd={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.focus();
+                          }}
+                          onChange={(e) => setName(sanitizeName(e.target.value))}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter") return;
+                            e.preventDefault();
+                            onSubmit(nameRef.current);
+                          }}
+                        />
+                        {!editing && <span className="arcade-blink inline-block w-2 shrink-0">_</span>}
+                      </>
                     ) : (
                       <>
                         {name || ""}
