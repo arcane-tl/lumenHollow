@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import type { DeathReason, HudSnapshot, Overlay } from "./types";
 import { loadMuted } from "./audio";
-import { loadSave, type SaveData } from "./save";
+import { loadSave, type SaveData, type ScoreEntry } from "./save";
 
 interface GameStore extends HudSnapshot {
   save: SaveData;
+  cloudByLevel: Record<number, ScoreEntry[]>;
   setOverlay: (overlay: Overlay) => void;
-  patch: (partial: Partial<HudSnapshot>) => void;
+  patch: (partial: Partial<HudSnapshot> & { cloudByLevel?: Record<number, ScoreEntry[]> }) => void;
   applySave: (save: SaveData) => void;
 }
 
@@ -28,6 +29,7 @@ export const useGameStore = create<GameStore>((set) => ({
   ready: true,
   doubleReady: true,
   save: initial,
+  cloudByLevel: {},
   setOverlay: (overlay) => set({ overlay }),
   patch: (partial) => set(partial),
   applySave: (save) => set({ save, unlocked: save.unlocked, best: save.best }),

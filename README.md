@@ -13,11 +13,27 @@ npm run dev
 
 Then open the printed local URL.
 
-## Deploy
+## Global high scores (Supabase)
 
-This app is set up for [Vercel](https://vercel.com). Connect the GitHub repo and deploy.
+1. Create a project at [supabase.com](https://supabase.com).
+2. Open **SQL Editor** and run [`supabase/schema.sql`](supabase/schema.sql).
+3. **Project Settings → API**: copy **Project URL** and the **anon public** key.
+4. Put them in `.env` (local) and in Vercel **Environment Variables**:
 
-High scores are stored in the browser today. A global Supabase board is next.
+```
+VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+5. Redeploy. The board says **Global** when the cloud is connected; otherwise it stays on this device.
+
+The anon key is meant to be public. Row Level Security on the `scores` table allows read + insert only.
+
+## Deploy on Vercel
+
+1. Import [arcane-tl/lumenHollow](https://github.com/arcane-tl/lumenHollow).
+2. Add the two env vars above.
+3. Deploy. Share the Vercel URL.
 
 ## Controls
 

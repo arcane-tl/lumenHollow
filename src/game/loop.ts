@@ -4,7 +4,9 @@ import { loadImages, type GameImages } from "./assets";
 import { Input } from "./input";
 import { fitTransform, paintStage, renderWorld } from "./render";
 import { createSim, resetSim, respawnAtCheckpoint, stepSim, type Sim } from "./sim";
-import { recordClear, recordScore, wouldRank, previewRank } from "./save";
+import { recordClear, recordScore, wouldRank } from "./save";
+import { previewRankList, wouldRankList } from "./scores";
+import { fetchLevelScores, isCloudOn, postLevelScore } from "./cloud";
 import { useGameStore } from "./store";
 import { LEVELS } from "./levels";
 import { pushHudTime } from "./hudTime";
@@ -180,15 +182,29 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
         }
         if (ev.won) {
           audio.win();
-          const cleared = recordClear(sim.world.id, sim.coins, store().save);
+          const snap = sim;
+          const cleared = recordClear(snap.world.id, snap.coins, store().save);
           store().applySave(cleared);
-          const rank = previewRank(cleared, sim.world.id, sim.coins, sim.time);
-          store().patch({ runTime: sim.time, lastRank: rank });
-          if (wouldRank(cleared, sim.world.id, sim.coins, sim.time)) {
-            store().setOverlay("score");
-          } else {
-            store().setOverlay("won");
-          }
+          store().patch({ runTime: snap.time });
+          void (async () => {
+            let list = cleared.scores[String(snap.world.id)] ?? [];
+            if (isCloudOn()) {
+              const remote = await fetchLevelScores(snap.world.id);
+              if (remote) {
+                list = remote;
+                store().patch({
+                  cloudByLevel: { ...store().cloudByLevel, [snap.world.id]: remote },
+                });
+              }
+            }
+            const rank = previewRankList(list, snap.coins, snap.time);
+            store().patch({ lastRank: rank });
+            if (wouldRankList(list, snap.coins, snap.time) || wouldRank(cleared, snap.world.id, snap.coins, snap.time)) {
+              store().setOverlay("score");
+            } else {
+              store().setOverlay("won");
+            }
+          })();
         }
         acc -= STEP;
       }
@@ -327,10 +343,20 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
         store().setOverlay("won");
         return;
       }
-      const { save, rank } = recordScore(store().save, sim.world.id, sim.coins, sim.time, name);
+      const levelId = sim.world.id;
+      const coins = sim.coins;
+      const time = sim.time;
+      const { save, rank } = recordScore(store().save, levelId, coins, time, name);
       store().applySave(save);
       store().patch({ lastRank: rank });
       store().setOverlay("won");
+      if (isCloudOn()) {
+        void postLevelScore(levelId, save.lastName || name, coins, time).then(() =>
+          fetchLevelScores(levelId).then((remote) => {
+            if (remote) store().patch({ cloudByLevel: { ...store().cloudByLevel, [levelId]: remote } });
+          }),
+        );
+      }
     },
     input,
     destroy: () => {

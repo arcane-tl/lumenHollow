@@ -5,7 +5,9 @@ import { MenuButtons } from "@/components/MenuButtons";
 import { mountGame, type GameHandle } from "@/game/loop";
 import { LEVELS } from "@/game/levels";
 import { useGameStore } from "@/game/store";
-import { formatTime, loadSave, previewRank, scoresFor, SCORE_LIMIT } from "@/game/save";
+import { formatTime, loadSave, scoresFor, SCORE_LIMIT } from "@/game/save";
+import { previewRankList } from "@/game/scores";
+import { fetchLevelScores, isCloudOn } from "@/game/cloud";
 import { onHudTime } from "@/game/hudTime";
 import { cn } from "@/lib/utils";
 
@@ -178,7 +180,9 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   const [blink, setBlink] = useState(true);
   const nameRef = useRef(name);
   nameRef.current = name;
-  const rank = previewRank(save, levelId, coins, time);
+  const cloud = useGameStore((s) => s.cloudByLevel[levelId]);
+  const boardSource = cloud ?? scoresFor(save, levelId);
+  const rank = previewRankList(boardSource, coins, time);
   const trail = LEVELS[levelId]?.name ?? "Trail";
 
   useEffect(() => {
@@ -211,7 +215,7 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onSubmit]);
 
-  const board = [...scoresFor(save, levelId)];
+  const board = [...boardSource];
   board.splice(rank - 1, 0, { name, coins, time, at: 0 });
   const rows = board.slice(0, SCORE_LIMIT);
 
@@ -313,14 +317,37 @@ function LevelSelect({
 
 function ScoreBoard({ onBack }: { onBack: () => void }) {
   const save = useGameStore((s) => s.save);
+  const cloudByLevel = useGameStore((s) => s.cloudByLevel);
   const [tab, setTab] = useState(0);
-  const rows = scoresFor(save, tab);
+  const [status, setStatus] = useState(isCloudOn() ? "Loading global board…" : "This device");
+  const cloud = cloudByLevel[tab];
+  const rows = cloud ?? scoresFor(save, tab);
   const trail = LEVELS[tab];
+
+  useEffect(() => {
+    if (!isCloudOn()) return;
+    let live = true;
+    setStatus("Loading global board…");
+    void fetchLevelScores(tab).then((remote) => {
+      if (!live) return;
+      if (remote) {
+        useGameStore.getState().patch({
+          cloudByLevel: { ...useGameStore.getState().cloudByLevel, [tab]: remote },
+        });
+        setStatus("Global");
+      } else {
+        setStatus("Offline · this device");
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [tab]);
   return (
     <div className="absolute inset-0 z-20 overflow-auto bg-bg/80 px-5 py-8 backdrop-blur-sm">
       <div className="mx-auto w-full max-w-4xl">
         <h2 className="font-display text-3xl">High scores</h2>
-        <p className="mt-2 text-sm text-muted">Coins first. Time breaks the tie.</p>
+        <p className="mt-2 text-sm text-muted">Coins first. Time breaks the tie. · {status}</p>
         <div className="mt-5 grid items-start gap-4 md:grid-cols-[minmax(13rem,17rem)_minmax(0,1fr)]">
           <MenuButtons
             align="start"
