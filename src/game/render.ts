@@ -276,8 +276,8 @@ function drawHazard(ctx: CanvasRenderingContext2D, images: GameImages | null, h:
     return;
   }
   const pulse = 0.5 + Math.sin(time * 5.2) * 0.18;
-  const visH = h.h + 8;
-  const visY = h.y - 6;
+  const visH = h.h + 12;
+  const visY = h.y - 4;
 
   if (images) {
     const n = Math.max(1, Math.round(h.w / 64));
@@ -301,7 +301,7 @@ function drawCheckpoint(
   const dw = 28;
   const dh = 58;
   const dx = cp.x + cp.w / 2 - dw / 2;
-  const dy = cp.y + cp.h - dh + 1;
+  const dy = cp.y + cp.h - dh + 8;
   const img = images ? (cp.active ? images.checkpointLit : images.checkpoint) : null;
   if (img) ctx.drawImage(img, dx, dy, dw, dh);
   else {
@@ -323,8 +323,10 @@ function drawCheckpointLight(
   time: number,
 ) {
   if (!cp.active) return;
+  const dh = 58;
+  const dy = cp.y + cp.h - dh + 8;
   const cx = cp.x + cp.w / 2;
-  const lampY = cp.y + 16;
+  const lampY = dy + 10;
   const pulse = 0.5 + Math.sin(time * 6.2) * 0.12;
   ctx.fillStyle = `rgba(255, 186, 78, ${0.1 + pulse * 0.08})`;
   ctx.beginPath();
@@ -452,7 +454,7 @@ export function renderWorld(
       const dw = 46;
       const dh = 54;
       const dx = p.x + p.w / 2 - dw / 2;
-      const dy = p.y + p.h - dh + 2;
+      const dy = p.y + p.h - dh + 9;
       if (images) {
         if (p.anim === "run") {
           drawSheet(ctx, images.run, 3, 2, frameIndex(p.animTime, 6, 11), dx, dy, dw, dh, p.facing < 0);
