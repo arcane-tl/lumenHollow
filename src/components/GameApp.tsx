@@ -86,13 +86,23 @@ export function GameApp() {
       )}
 
       {overlay === "title" && (
-        <div className="absolute inset-0 z-20 flex flex-col bg-gradient-to-b from-transparent via-bg/25 to-bg/70 px-6 pb-10 pt-6">
+        <div
+          className={cn(
+            "absolute inset-0 z-20 flex flex-col bg-gradient-to-b from-transparent via-bg/25 to-bg/70 pt-6",
+            touchPrimary ? "px-4 pb-8" : "px-6 pb-10",
+          )}
+        >
           <div className="mx-auto mt-auto mb-auto w-full max-w-md">
             <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">A dusk-wood platformer</p>
-            <h1 className="mt-2 font-display text-5xl font-medium leading-none tracking-tight sm:text-6xl">
+            <h1
+              className={cn(
+                "mt-2 font-display font-medium leading-none tracking-tight",
+                touchPrimary ? "text-4xl" : "text-5xl sm:text-6xl",
+              )}
+            >
               Lumen Hollow
             </h1>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">
+            <p className={cn("max-w-sm text-sm leading-relaxed text-muted", touchPrimary ? "mt-3" : "mt-4")}>
               Run, jump, and double-jump through mossy ruins. Light the lanterns. Reach the flag.
             </p>
             <MenuButtons
@@ -121,7 +131,7 @@ export function GameApp() {
                 },
               ]}
             />
-            <div className="mt-6 flex justify-center">
+            <div className={cn("flex justify-center", touchPrimary ? "mt-4" : "mt-6")}>
               <ControlLegend touch={touchPrimary} />
             </div>
           </div>
@@ -255,52 +265,32 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   board.splice(rank - 1, 0, { name, coins, time, at: 0 });
   const rows = board.slice(0, SCORE_LIMIT);
 
-  const commit = () => onSubmit(nameRef.current);
-
   return (
     <div
       className={cn(
-        "absolute inset-0 z-20 grid bg-bg/70 px-4 backdrop-blur-[2px]",
-        touch ? "items-start overflow-auto pt-6" : "place-items-center",
+        "absolute inset-0 z-20 grid place-items-center bg-bg/70 backdrop-blur-[2px]",
+        touch ? "overflow-auto px-3 py-16" : "px-4",
       )}
-      style={touch && kb ? { paddingBottom: kb + 16 } : undefined}
+      style={touch && kb ? { paddingBottom: kb + 16, alignItems: "start" } : undefined}
     >
-      <div className="w-full max-w-lg rounded-xl border border-border bg-surface p-5 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
+      <div
+        className={cn(
+          "w-full max-w-lg rounded-xl border border-border bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.4)]",
+          touch ? "p-4" : "p-5",
+        )}
+      >
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">New high score</p>
-        <h2 className="mt-1 font-display text-2xl leading-tight">{trail}</h2>
+        <h2 className={cn("mt-1 font-display leading-tight", touch ? "text-xl" : "text-2xl")}>{trail}</h2>
         <p className="mt-1 text-sm text-muted">
           Rank #{rank} · {coins}/{total} · {formatTime(time)}
         </p>
-        {touch && (
-          <form
-            className="mt-4 flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              commit();
-            }}
+        <ol className={cn("mt-4 font-sans", touch ? "text-[13px]" : "text-sm")}>
+          <li
+            className={cn(
+              "grid grid-cols-[2rem_1fr_4.5rem_5rem] gap-2 px-2 pb-1 text-[11px] uppercase tracking-wider text-muted",
+              touch && "grid-cols-[1.5rem_1fr_3.25rem_4.25rem] gap-1.5 px-1",
+            )}
           >
-            <input
-              ref={fieldRef}
-              name="arcade-name"
-              aria-label="High score name"
-              value={name}
-              maxLength={NAME_MAX}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              enterKeyHint="done"
-              inputMode="text"
-              placeholder="YOUR NAME"
-              className="min-w-0 flex-1 rounded-md border border-border bg-bg px-3 text-fg outline-none placeholder:text-muted focus-visible:ring-2 focus-visible:ring-accent/50"
-              style={{ fontSize: 16, height: 44 }}
-              onChange={(e) => setName(sanitizeName(e.target.value))}
-            />
-            <Button type="submit">Save</Button>
-          </form>
-        )}
-        <ol className="mt-4 font-sans text-sm">
-          <li className="grid grid-cols-[2rem_1fr_4.5rem_5rem] gap-2 px-2 pb-1 text-[11px] uppercase tracking-wider text-muted">
             <span>#</span>
             <span>Name</span>
             <span className="text-right">Coins</span>
@@ -314,15 +304,53 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
                 key={row ? `${row.at}-${i}` : `empty-${i}`}
                 className={cn(
                   "grid grid-cols-[2rem_1fr_4.5rem_5rem] items-baseline gap-2 rounded-md px-2 py-1.5 tabular-nums",
+                  touch && "grid-cols-[1.5rem_1fr_3.25rem_4.25rem] gap-1.5 px-1 py-1",
                   mine && "bg-accent/15 text-fg",
                   !mine && "text-muted",
                 )}
+                onPointerDown={
+                  touch && mine
+                    ? () => {
+                        fieldRef.current?.focus();
+                      }
+                    : undefined
+                }
               >
                 <span>{i + 1}</span>
                 <span className={cn("truncate tracking-wide", mine && "font-medium text-fg")}>
                   {mine ? (
                     touch ? (
-                      name || "—"
+                      <span className="inline-flex min-w-0 items-baseline">
+                        <input
+                          ref={fieldRef}
+                          name="arcade-name"
+                          aria-label="High score name"
+                          value={name}
+                          maxLength={NAME_MAX}
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="characters"
+                          spellCheck={false}
+                          enterKeyHint="done"
+                          inputMode="text"
+                          className="min-w-0 border-0 bg-transparent p-0 font-medium tracking-wide text-fg outline-none"
+                          style={{
+                            fontSize: 16,
+                            lineHeight: 1,
+                            caretColor: "transparent",
+                            width: `${Math.max(1, name.length + 1)}ch`,
+                            maxWidth: "100%",
+                            WebkitAppearance: "none",
+                          }}
+                          onChange={(e) => setName(sanitizeName(e.target.value))}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter") return;
+                            e.preventDefault();
+                            onSubmit(nameRef.current);
+                          }}
+                        />
+                        <span className={cn("inline-block w-2", blink ? "opacity-100" : "opacity-0")}>_</span>
+                      </span>
                     ) : (
                       <>
                         {name || ""}
@@ -339,9 +367,7 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
             );
           })}
         </ol>
-        <p className="mt-4 text-center text-xs tracking-wide text-muted">
-          {touch ? "Tap the field to type · Save when you’re done" : "Type your name · Enter to save"}
-        </p>
+        <p className="mt-4 text-center text-xs tracking-wide text-muted">Type your name · Enter to save</p>
       </div>
     </div>
   );
@@ -358,11 +384,17 @@ function LevelSelect({
 }) {
   const save = useGameStore((s) => s.save);
   const best = useGameStore((s) => s.best);
+  const touch = useTouchPrimary();
   const open = LEVELS;
   return (
-    <div className="absolute inset-0 z-20 overflow-auto bg-bg/75 px-5 py-8 backdrop-blur-sm">
+    <div
+      className={cn(
+        "absolute inset-0 z-20 overflow-auto bg-bg/75 backdrop-blur-sm",
+        touch ? "px-4 py-14" : "px-5 py-8",
+      )}
+    >
       <div className="mx-auto w-full max-w-lg">
-        <h2 className="font-display text-3xl">Levels</h2>
+        <h2 className={cn("font-display", touch ? "text-2xl" : "text-3xl")}>Levels</h2>
         <MenuButtons
           onCancel={onBack}
           items={[
@@ -372,7 +404,7 @@ function LevelSelect({
                 id: `lvl-${lvl.id}`,
                 label: (
                   <span className="flex w-full items-baseline justify-between gap-3">
-                    <span className="font-display text-lg">{lvl.name}</span>
+                    <span className={cn("font-display", touch ? "text-base" : "text-lg")}>{lvl.name}</span>
                     <span className="text-xs tabular-nums text-muted">
                       {lead
                         ? `${lead.coins}/${lvl.coins.length} · ${formatTime(lead.time)}`
@@ -401,6 +433,7 @@ function ScoreBoard({ onBack }: { onBack: () => void }) {
   const cloud = cloudByLevel[tab];
   const rows = cloud ?? scoresFor(save, tab);
   const trail = LEVELS[tab];
+  const touch = useTouchPrimary();
 
   useEffect(() => {
     if (!isCloudOn()) return;
@@ -422,11 +455,16 @@ function ScoreBoard({ onBack }: { onBack: () => void }) {
     };
   }, [tab]);
   return (
-    <div className="absolute inset-0 z-20 overflow-auto bg-bg/80 px-5 py-8 backdrop-blur-sm">
+    <div
+      className={cn(
+        "absolute inset-0 z-20 overflow-auto bg-bg/80 backdrop-blur-sm",
+        touch ? "px-4 py-14" : "px-5 py-8",
+      )}
+    >
       <div className="mx-auto w-full max-w-4xl">
-        <h2 className="font-display text-3xl">High scores</h2>
+        <h2 className={cn("font-display", touch ? "text-2xl" : "text-3xl")}>High scores</h2>
         <p className="mt-2 text-sm text-muted">Coins first. Time breaks the tie. · {status}</p>
-        <div className="mt-5 grid items-start gap-4 md:grid-cols-[minmax(13rem,17rem)_minmax(0,1fr)]">
+        <div className={cn("mt-5 grid items-start gap-4 md:grid-cols-[minmax(13rem,17rem)_minmax(0,1fr)]", touch && "mt-3 gap-3")}>
           <MenuButtons
             align="start"
             className="mt-0"
@@ -445,18 +483,21 @@ function ScoreBoard({ onBack }: { onBack: () => void }) {
             ]}
           />
           <div>
-            <p className="mb-2 font-display text-xl">{trail?.name ?? "Trail"}</p>
+            <p className={cn("mb-2 font-display", touch ? "text-lg" : "text-xl")}>{trail?.name ?? "Trail"}</p>
             <ol className="overflow-hidden rounded-xl border border-border bg-surface">
               {Array.from({ length: SCORE_LIMIT }, (_, i) => {
                 const row = rows[i];
                 return (
                   <li
                     key={row ? `${row.at}-${i}` : `empty-${i}`}
-                    className="flex items-baseline justify-between gap-3 border-b border-border px-4 py-3 last:border-b-0"
+                    className={cn(
+                      "flex items-baseline justify-between gap-3 border-b border-border last:border-b-0",
+                      touch ? "px-3 py-1.5" : "px-4 py-3",
+                    )}
                   >
                     <span className="flex min-w-0 items-baseline gap-3">
                       <span className="w-6 tabular-nums text-sm text-muted">{i + 1}</span>
-                      <span className="truncate font-display text-lg">{row?.name ?? "—"}</span>
+                      <span className={cn("truncate font-display", touch ? "text-base" : "text-lg")}>{row?.name ?? "—"}</span>
                     </span>
                     <span className="shrink-0 tabular-nums text-sm text-muted">
                       {row ? `${row.coins} · ${formatTime(row.time)}` : "—"}
@@ -693,11 +734,22 @@ function Modal({
   subtitle?: string;
   children: ReactNode;
 }) {
+  const touch = useTouchPrimary();
   return (
-    <div className="absolute inset-0 z-20 grid place-items-center bg-bg/55 px-5 backdrop-blur-[2px]">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
-        <h2 className="font-display text-2xl leading-tight">{title}</h2>
-        {subtitle && <p className="mt-2 text-sm leading-relaxed text-muted">{subtitle}</p>}
+    <div
+      className={cn(
+        "absolute inset-0 z-20 grid place-items-center bg-bg/55 backdrop-blur-[2px]",
+        touch ? "overflow-auto px-3 py-16" : "px-5",
+      )}
+    >
+      <div
+        className={cn(
+          "w-full max-w-sm rounded-xl border border-border bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.4)]",
+          touch ? "p-4" : "p-6",
+        )}
+      >
+        <h2 className={cn("font-display leading-tight", touch ? "text-xl" : "text-2xl")}>{title}</h2>
+        {subtitle && <p className={cn("text-sm leading-relaxed text-muted", touch ? "mt-1.5" : "mt-2")}>{subtitle}</p>}
         {children}
       </div>
     </div>

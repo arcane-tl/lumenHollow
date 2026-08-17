@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { useTouchPrimary } from "@/components/TouchControls";
 import { cn } from "@/lib/utils";
 
 const NEXT = new Set(["ArrowDown", "ArrowRight", "KeyS", "KeyD"]);
@@ -25,6 +26,7 @@ export function MenuButtons({
   className?: string;
   onCancel?: () => void;
 }) {
+  const compact = useTouchPrimary();
   const [i, setI] = useState(0);
   const iRef = useRef(0);
   const itemsRef = useRef(items);
@@ -120,14 +122,23 @@ export function MenuButtons({
   }, []);
 
   return (
-    <div className={cn("mt-5 flex flex-col gap-2", className)} data-menu="" data-menu-index={i}>
+    <div
+      className={cn("mt-5 flex flex-col gap-2", compact && "mt-3 gap-1.5", className)}
+      data-menu=""
+      data-menu-index={i}
+    >
       {items.map((it, idx) => (
         <Button
           key={it.id}
           type="button"
           variant={idx === i ? "default" : "outline"}
           data-current={idx === i ? "1" : "0"}
-          className={cn(idx === i && "ring-2 ring-accent", align === "start" && "justify-start px-5")}
+          className={cn(
+            idx === i && "ring-2 ring-accent",
+            align === "start" && "justify-start px-5",
+            compact && "h-9 px-3 text-sm",
+            compact && align === "start" && "px-3",
+          )}
           onClick={it.onPick}
           onMouseEnter={() => {
             if (!hoverOk.current) return;
