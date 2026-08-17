@@ -326,7 +326,7 @@ function drawCheckpointLight(
   const dh = 58;
   const dy = cp.y + cp.h - dh + 8;
   const cx = cp.x + cp.w / 2;
-  const lampY = dy + 10;
+  const lampY = dy + 16;
   const pulse = 0.5 + Math.sin(time * 6.2) * 0.12;
   ctx.fillStyle = `rgba(255, 186, 78, ${0.1 + pulse * 0.08})`;
   ctx.beginPath();
