@@ -6,7 +6,7 @@ import { TouchControls, useTouchPrimary } from "@/components/TouchControls";
 import { mountGame, type GameHandle } from "@/game/loop";
 import { LEVELS } from "@/game/levels";
 import { useGameStore } from "@/game/store";
-import { formatTime, loadSave, scoresFor, NAME_MAX, SCORE_LIMIT } from "@/game/save";
+import { formatTime, loadSave, scoresFor, NAME_MAX, SCORE_LIMIT, type ScoreEntry } from "@/game/save";
 import { previewRankList } from "@/game/scores";
 import { fetchLevelScores, isCloudOn } from "@/game/cloud";
 import { onHudTime } from "@/game/hudTime";
@@ -32,6 +32,12 @@ export function GameApp() {
   }, []);
 
   useEffect(() => {
+    if (overlay !== "score") return;
+    const canvas = canvasRef.current;
+    if (canvas && document.activeElement === canvas) canvas.blur();
+  }, [overlay]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat || e.code !== "KeyM") return;
       if (overlay === "score") return;
@@ -55,7 +61,7 @@ export function GameApp() {
     <div className="relative h-dvh w-full overflow-hidden bg-bg text-fg">
       <canvas
         ref={canvasRef}
-        tabIndex={0}
+        tabIndex={overlay === "score" ? -1 : 0}
         className="absolute inset-0 h-full w-full touch-none outline-none"
         style={{ touchAction: "none" }}
       />
@@ -196,44 +202,18 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   const time = useGameStore((s) => s.runTime);
   const touch = useTouchPrimary();
   const [name, setName] = useState("");
-  const [blink, setBlink] = useState(true);
-  const [kb, setKb] = useState(0);
   const nameRef = useRef(name);
   const fieldRef = useRef<HTMLInputElement>(null);
+  const snapRef = useRef<{ source: ScoreEntry[]; rank: number } | null>(null);
   nameRef.current = name;
   const cloud = useGameStore((s) => s.cloudByLevel[levelId]);
-  const boardSource = cloud ?? scoresFor(save, levelId);
-  const rank = previewRankList(boardSource, coins, time);
+  const liveSource = cloud ?? scoresFor(save, levelId);
+  if (!snapRef.current) {
+    snapRef.current = { source: liveSource, rank: previewRankList(liveSource, coins, time) };
+  }
+  const boardSource = snapRef.current.source;
+  const rank = snapRef.current.rank;
   const trail = LEVELS[levelId]?.name ?? "Trail";
-
-  useEffect(() => {
-    const id = window.setInterval(() => setBlink((v) => !v), 420);
-    return () => window.clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    if (!touch) return;
-    const el = fieldRef.current;
-    if (!el) return;
-    const id = window.requestAnimationFrame(() => el.focus());
-    return () => window.cancelAnimationFrame(id);
-  }, [touch]);
-
-  useEffect(() => {
-    if (!touch) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const sync = () => {
-      setKb(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
-    };
-    vv.addEventListener("resize", sync);
-    vv.addEventListener("scroll", sync);
-    sync();
-    return () => {
-      vv.removeEventListener("resize", sync);
-      vv.removeEventListener("scroll", sync);
-    };
-  }, [touch]);
 
   useEffect(() => {
     if (touch) return;
@@ -268,10 +248,9 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   return (
     <div
       className={cn(
-        "absolute inset-0 z-20 grid place-items-center bg-bg/70 backdrop-blur-[2px]",
-        touch ? "overflow-auto px-3 py-16" : "px-4",
+        "absolute inset-0 z-20 grid bg-bg/70 backdrop-blur-[2px]",
+        touch ? "items-start overflow-y-auto px-3 pb-6 pt-16" : "place-items-center px-4",
       )}
-      style={touch && kb ? { paddingBottom: kb + 16, alignItems: "start" } : undefined}
     >
       <div
         className={cn(
@@ -305,56 +284,58 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
                 className={cn(
                   "grid grid-cols-[2rem_1fr_4.5rem_5rem] items-baseline gap-2 rounded-md px-2 py-1.5 tabular-nums",
                   touch && "grid-cols-[1.5rem_1fr_3.25rem_4.25rem] gap-1.5 px-1 py-1",
+                  touch && mine && "relative min-h-11 items-center",
                   mine && "bg-accent/15 text-fg",
                   !mine && "text-muted",
                 )}
-                onPointerDown={
-                  touch && mine
-                    ? () => {
-                        fieldRef.current?.focus();
-                      }
-                    : undefined
-                }
               >
+                {touch && mine && (
+                  <input
+                    ref={fieldRef}
+                    name="arcade-name"
+                    aria-label="High score name"
+                    value={name}
+                    maxLength={NAME_MAX}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    enterKeyHint="done"
+                    inputMode="text"
+                    className="absolute inset-0 z-10 m-0 h-full w-full border-0 p-0 outline-none"
+                    style={{
+                      fontSize: 16,
+                      color: "transparent",
+                      caretColor: "transparent",
+                      WebkitAppearance: "none",
+                      background: "transparent",
+                    }}
+                    onChange={(e) => setName(sanitizeName(e.target.value))}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
+                      e.preventDefault();
+                      onSubmit(nameRef.current);
+                    }}
+                  />
+                )}
                 <span>{i + 1}</span>
-                <span className={cn("truncate tracking-wide", mine && "font-medium text-fg")}>
+                <span
+                  className={cn(
+                    "tracking-wide",
+                    !mine && "truncate",
+                    mine && "font-medium text-fg",
+                  )}
+                >
                   {mine ? (
                     touch ? (
-                      <span className="inline-flex min-w-0 items-baseline">
-                        <input
-                          ref={fieldRef}
-                          name="arcade-name"
-                          aria-label="High score name"
-                          value={name}
-                          maxLength={NAME_MAX}
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="characters"
-                          spellCheck={false}
-                          enterKeyHint="done"
-                          inputMode="text"
-                          className="min-w-0 border-0 bg-transparent p-0 font-medium tracking-wide text-fg outline-none"
-                          style={{
-                            fontSize: 16,
-                            lineHeight: 1,
-                            caretColor: "transparent",
-                            width: `${Math.max(1, name.length + 1)}ch`,
-                            maxWidth: "100%",
-                            WebkitAppearance: "none",
-                          }}
-                          onChange={(e) => setName(sanitizeName(e.target.value))}
-                          onKeyDown={(e) => {
-                            if (e.key !== "Enter") return;
-                            e.preventDefault();
-                            onSubmit(nameRef.current);
-                          }}
-                        />
-                        <span className={cn("inline-block w-2", blink ? "opacity-100" : "opacity-0")}>_</span>
+                      <span className="pointer-events-none">
+                        {name}
+                        <span className="arcade-blink inline-block w-2">_</span>
                       </span>
                     ) : (
                       <>
                         {name || ""}
-                        <span className={cn("inline-block w-2", blink ? "opacity-100" : "opacity-0")}>_</span>
+                        <span className="arcade-blink inline-block w-2">_</span>
                       </>
                     )
                   ) : (
