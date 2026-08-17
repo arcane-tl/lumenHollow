@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Flag, Flame, House, LogOut, Map, Pause, Play, RotateCcw, Trophy, Volume2, VolumeX } from "lucide-react";
+import { Flag, Flame, LogOut, Map, Pause, Play, RotateCcw, Trophy, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MenuButtons } from "@/components/MenuButtons";
 import { mountGame, type GameHandle } from "@/game/loop";
@@ -163,7 +163,7 @@ export function GameApp() {
           onReplay={() => gameRef.current?.restart()}
           onBoard={() => gameRef.current?.toBoard()}
           onLevels={() => gameRef.current?.toSelect()}
-          onTitle={() => gameRef.current?.toTitle()}
+          onQuit={() => gameRef.current?.toTitle()}
         />
       )}
     </div>
@@ -486,13 +486,13 @@ function WonScreen({
   onReplay,
   onBoard,
   onLevels,
-  onTitle,
+  onQuit,
 }: {
   onNext: () => void;
   onReplay: () => void;
   onBoard: () => void;
   onLevels: () => void;
-  onTitle: () => void;
+  onQuit: () => void;
 }) {
   const levelName = useGameStore((s) => s.levelName);
   const coins = useGameStore((s) => s.coins);
@@ -534,7 +534,7 @@ function WonScreen({
             onPick: onBoard,
           },
           { id: "levels", label: <MenuLabel icon={Map}>Levels</MenuLabel>, onPick: onLevels },
-          { id: "title", label: <MenuLabel icon={House}>Title</MenuLabel>, onPick: onTitle },
+          { id: "quit", label: <MenuLabel icon={LogOut}>Quit</MenuLabel>, onPick: onQuit },
         ]}
       />
     </Modal>
