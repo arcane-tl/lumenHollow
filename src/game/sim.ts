@@ -401,28 +401,40 @@ function resolveX(p: Player, plats: Platform[], t: number) {
   }
 }
 
-function resolveY(p: Player, plats: Platform[], downHeld: boolean, t: number) {
+function resolveY(p: Player, plats: Platform[], downHeld: boolean, dt: number) {
   let grounded = false;
   let ride: Platform | null = null;
+  const prevBottom = p.y + p.h - p.vy * dt;
+  const wasRide = p.ride;
   for (const plat of plats) {
     const body = platBody(plat);
     if (body.w <= 3) continue;
-    if (!overlaps(p.x, p.y, p.w, p.h, body.x, body.y, body.w, body.h)) continue;
+    if (p.x + p.w <= body.x || p.x >= body.x + body.w) continue;
+
+    const top = body.y;
+    const prevTop = plat.prevY;
+    const hit = overlaps(p.x, p.y, p.w, p.h, body.x, body.y, body.w, body.h);
+    const feet = p.y + p.h;
+    const crossed = p.vy >= 0 && prevBottom <= prevTop + 6 && feet >= top;
+    const staying =
+      wasRide === plat && p.vy >= 0 && feet >= top - 4 && feet <= top + Math.max(12, body.h * 0.65 + 10);
+
     if (plat.kind === "oneway") {
       if (p.dropThrough > 0) continue;
       if (downHeld && p.grounded) {
         p.dropThrough = 0.18;
         continue;
       }
-      const prevBottom = p.y + p.h - p.vy * (1 / 120) - 2;
-      if (p.vy < 0 || prevBottom > plat.y + 8) continue;
+      if (p.vy < 0) continue;
+      if (!staying && !crossed && prevBottom > prevTop + 8) continue;
     }
-    if (p.vy >= 0 && p.y + p.h - body.y < body.h * 0.65 + 10) {
-      p.y = body.y - p.h;
+
+    if (p.vy >= 0 && (staying || crossed || (hit && feet - top < body.h * 0.65 + 10))) {
+      p.y = top - p.h;
       p.vy = 0;
       grounded = true;
       ride = plat;
-    } else if (plat.kind !== "oneway" && p.vy < 0) {
+    } else if (plat.kind !== "oneway" && p.vy < 0 && hit) {
       p.y = body.y + body.h;
       p.vy = 0;
     }
@@ -523,7 +535,7 @@ export function stepSim(sim: Sim, actions: Actions, dt: number): StepEvents {
   p.x += p.vx * dt;
   resolveX(p, sim.world.platforms, sim.time);
   p.y += p.vy * dt;
-  resolveY(p, sim.world.platforms, actions.downHeld, sim.time);
+  resolveY(p, sim.world.platforms, actions.downHeld, dt);
   if (resolveTurretY(p, sim.world.hazards)) p.grounded = true;
   stepCrumble(sim, dt);
 
