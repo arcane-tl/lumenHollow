@@ -419,6 +419,10 @@ export function renderWorld(
     drawBolt(ctx, images, b);
   }
 
+  for (const cp of sim.world.checkpoints) {
+    drawCheckpoint(ctx, images, cp);
+  }
+
   for (const c of sim.world.coins) {
     if (c.taken) continue;
     if (!visible(c.x - 16, c.y - 16, 32, 32, cx, cy, vw, vh)) continue;
@@ -432,10 +436,6 @@ export function renderWorld(
       ctx.arc(c.x, y, c.r, 0, Math.PI * 2);
       ctx.fill();
     }
-  }
-
-  for (const cp of sim.world.checkpoints) {
-    drawCheckpoint(ctx, images, cp);
   }
 
   const f = sim.world.flag;
