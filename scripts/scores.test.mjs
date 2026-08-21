@@ -7,6 +7,7 @@ import {
   wouldRankList,
   cleanName,
   SCORE_LIMIT,
+  NAME_MAX,
 } from "../src/game/scores.ts";
 
 test("coins beat time", () => {
@@ -34,6 +35,15 @@ test("board fills then knocks off worse runs", () => {
 
 test("format and name", () => {
   assert.equal(formatTime(65.2), "1:05.20");
-  assert.equal(cleanName("   Ash  Vale   "), "Ash Vale");
-  assert.equal(cleanName("   "), "Fox");
+  assert.equal(NAME_MAX, 18);
+  assert.equal(cleanName("   Ash  Vale   "), "ASHVALE");
+  assert.equal(cleanName("fox_1"), "FOX_1");
+  assert.equal(cleanName("   "), "FOX");
+  assert.equal(cleanName("THIRTEENCHARS"), "THIRTEENCHARS");
+  assert.equal(cleanName("NINETEENCHARACTERSX").length, 18);
+  assert.equal(cleanName("FOX NAME OKAY"), "FOXNAMEOKAY");
+});
+
+test("identical coins and time keep earlier at first", () => {
+  assert.ok(compareScores({ coins: 8, time: 30, at: 1 }, { coins: 8, time: 30, at: 2 }) < 0);
 });

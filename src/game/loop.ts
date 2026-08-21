@@ -6,7 +6,7 @@ import { fitTransform, paintStage, renderWorld } from "./render";
 import { burstConfetti, createSim, resetSim, respawnAtCheckpoint, stepSim, tickWinFx, type Sim } from "./sim";
 import { recordClear, recordScore } from "./save";
 import { previewRankList, wouldRankList } from "./scores";
-import { fetchLevelScores, isCloudOn, postLevelScore } from "./cloud";
+import { fetchLevelScores, isCloudOn, submitLevelScore } from "./cloud";
 import { useGameStore } from "./store";
 import { LEVELS } from "./levels";
 import { pushHudTime } from "./hudTime";
@@ -195,16 +195,13 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
           void (async () => {
             const local = cleared.scores[String(snap.world.id)] ?? [];
             let remote: typeof local | null = null;
-            if (isCloudOn()) {
-              const fetched = await fetchLevelScores(snap.world.id);
-              if (fetched) {
-                remote = fetched;
-                store().patch({
-                  cloudByLevel: { ...store().cloudByLevel, [snap.world.id]: fetched },
-                });
-              }
+            if (isCloudOn()) remote = await fetchLevelScores(snap.world.id);
+            if (remote) {
+              store().patch({
+                cloudByLevel: { ...store().cloudByLevel, [snap.world.id]: remote },
+              });
             }
-            const list = remote && remote.length ? remote : local;
+            const list = remote !== null ? remote : local;
             const ranked = wouldRankList(list, snap.coins, snap.time);
             store().patch({ lastRank: ranked ? previewRankList(list, snap.coins, snap.time) : null });
             if (ranked) {
@@ -382,14 +379,32 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
       const { save, rank } = recordScore(store().save, levelId, coins, time, name);
       store().applySave(save);
       store().patch({ lastRank: rank });
-      store().setOverlay("won");
-      if (isCloudOn()) {
-        void postLevelScore(levelId, save.lastName || name, coins, time).then(() =>
-          fetchLevelScores(levelId).then((remote) => {
-            if (remote) store().patch({ cloudByLevel: { ...store().cloudByLevel, [levelId]: remote } });
-          }),
-        );
+      const finish = () => {
+        if (store().overlay === "score") store().setOverlay("won");
+      };
+      if (!isCloudOn()) {
+        finish();
+        return;
       }
+      let done = false;
+      const timer = window.setTimeout(() => {
+        if (done) return;
+        done = true;
+        finish();
+      }, 3000);
+      void submitLevelScore(levelId, save.lastName || name, coins, time).then((result) => {
+        if (result.board) {
+          store().patch({
+            cloudByLevel: { ...store().cloudByLevel, [levelId]: result.board },
+            lastRank: result.rank ?? rank,
+          });
+        }
+      }).finally(() => {
+        window.clearTimeout(timer);
+        if (done) return;
+        done = true;
+        finish();
+      });
     },
     input,
     destroy: () => {

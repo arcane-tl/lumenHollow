@@ -182,7 +182,7 @@ export function GameApp() {
 }
 
 function sanitizeName(raw: string) {
-  return raw.toUpperCase().replace(/[^A-Z0-9 ._\-]/g, "").slice(0, NAME_MAX);
+  return raw.toUpperCase().replace(/[^A-Z0-9._-]/g, "").slice(0, NAME_MAX);
 }
 
 function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
@@ -200,7 +200,7 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   nameRef.current = name;
   const cloud = useGameStore((s) => s.cloudByLevel[levelId]);
   const local = scoresFor(save, levelId);
-  const liveSource = cloud && cloud.length ? cloud : local;
+  const liveSource = cloud !== undefined ? cloud : local;
   if (!snapRef.current) {
     snapRef.current = { source: liveSource, rank: previewRankList(liveSource, coins, time) };
   }
@@ -224,7 +224,7 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
         setName((s) => s.slice(0, -1));
         return;
       }
-      if (e.key.length === 1 && /[a-zA-Z0-9 ._\-]/.test(e.key)) {
+      if (e.key.length === 1 && /[a-zA-Z0-9._-]/.test(e.key)) {
         e.preventDefault();
         e.stopImmediatePropagation();
         setName((s) => sanitizeName(s + e.key));
@@ -362,7 +362,7 @@ function ScoreBoard({
   const [status, setStatus] = useState(isCloudOn() ? "Loading global board…" : "This device");
   const cloud = cloudByLevel[tab];
   const local = scoresFor(save, tab);
-  const rows = cloud && cloud.length ? cloud : local;
+  const rows = cloud !== undefined ? cloud : local;
   const totalCoins = LEVELS[tab]?.coins.length ?? 0;
   const touch = useTouchPrimary();
 
@@ -374,22 +374,51 @@ function ScoreBoard({
   useEffect(() => {
     if (!isCloudOn()) return;
     let live = true;
-    setStatus("Loading global board…");
-    void fetchLevelScores(tab).then((remote) => {
+    const apply = (remote: ScoreEntry[] | null, silent: boolean) => {
       if (!live) return;
-      if (remote) {
+      if (remote !== null) {
         useGameStore.getState().patch({
           cloudByLevel: { ...useGameStore.getState().cloudByLevel, [tab]: remote },
         });
         setStatus("Global");
-      } else {
+      } else if (!silent) {
         setStatus("Offline · this device");
       }
-    });
+    };
+    setStatus("Loading global board…");
+    void fetchLevelScores(tab).then((remote) => apply(remote, false));
+    const poll = window.setInterval(() => {
+      void fetchLevelScores(tab).then((remote) => apply(remote, true));
+    }, 2000);
+    const onVis = () => {
+      if (document.visibilityState !== "visible") return;
+      void fetchLevelScores(tab).then((remote) => apply(remote, true));
+    };
+    window.addEventListener("focus", onVis);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      live = false;
+      window.clearInterval(poll);
+      window.removeEventListener("focus", onVis);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [tab]);
+
+  useEffect(() => {
+    if (!isCloudOn()) return;
+    let live = true;
+    for (const lvl of levelsInAct(actId)) {
+      if (lvl.id === tab) continue;
+      void fetchLevelScores(lvl.id).then((remote) => {
+        if (!live || remote === null) return;
+        const s = useGameStore.getState();
+        s.patch({ cloudByLevel: { ...s.cloudByLevel, [lvl.id]: remote } });
+      });
+    }
     return () => {
       live = false;
     };
-  }, [tab]);
+  }, [actId, tab]);
   return (
     <div
       className={cn(

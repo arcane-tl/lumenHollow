@@ -1,5 +1,5 @@
 export const SCORE_LIMIT = 10;
-export const NAME_MAX = 16;
+export const NAME_MAX = 18;
 
 export interface ScoreEntry {
   name: string;
@@ -8,9 +8,13 @@ export interface ScoreEntry {
   at: number;
 }
 
-export function compareScores(a: Pick<ScoreEntry, "coins" | "time">, b: Pick<ScoreEntry, "coins" | "time">) {
+export function compareScores(
+  a: Pick<ScoreEntry, "coins" | "time"> & { at?: number },
+  b: Pick<ScoreEntry, "coins" | "time"> & { at?: number },
+) {
   if (b.coins !== a.coins) return b.coins - a.coins;
-  return a.time - b.time;
+  if (a.time !== b.time) return a.time - b.time;
+  return (a.at ?? 0) - (b.at ?? 0);
 }
 
 export function formatTime(seconds: number) {
@@ -20,9 +24,10 @@ export function formatTime(seconds: number) {
   return `${m}:${s.toFixed(2).padStart(5, "0")}`;
 }
 
-export function cleanName(raw: string, fallback = "Fox") {
-  const name = raw.replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
-  return name || fallback;
+export function cleanName(raw: string, fallback = "FOX") {
+  const scrub = (value: string) =>
+    value.toUpperCase().replace(/[^A-Z0-9._-]/g, "").slice(0, NAME_MAX);
+  return scrub(raw) || scrub(fallback) || "FOX";
 }
 
 export function sortScores(list: ScoreEntry[]) {
