@@ -113,10 +113,6 @@ function bedFill(sprite: PlatformSprite) {
   return "#3a4038";
 }
 
-function wrap(n: number, m: number) {
-  return ((n % m) + m) % m;
-}
-
 function blitLayer(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -140,6 +136,60 @@ function blitLayer(
   ctx.drawImage(img, 0, sy, img.width, sh, x, y, w, h);
 }
 
+let fadeSheet: HTMLCanvasElement | null = null;
+let fadeSheetCtx: CanvasRenderingContext2D | null = null;
+
+function blitLayerFadeLeft(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  flip: boolean,
+  srcY: number,
+  fade: number,
+) {
+  if (fade <= 1) {
+    blitLayer(ctx, img, x, y, w, h, flip, srcY);
+    return;
+  }
+  if (!fadeSheet) {
+    fadeSheet = document.createElement("canvas");
+    fadeSheetCtx = fadeSheet.getContext("2d");
+  }
+  const oc = fadeSheetCtx;
+  if (!oc) {
+    blitLayer(ctx, img, x, y, w, h, flip, srcY);
+    return;
+  }
+  if (fadeSheet.width !== w || fadeSheet.height !== h) {
+    fadeSheet.width = w;
+    fadeSheet.height = h;
+  }
+  oc.setTransform(1, 0, 0, 1, 0, 0);
+  oc.globalCompositeOperation = "copy";
+  const sy = srcY;
+  const sh = Math.max(1, img.height - srcY);
+  if (flip) {
+    oc.save();
+    oc.translate(w, 0);
+    oc.scale(-1, 1);
+    oc.drawImage(img, 0, sy, img.width, sh, 0, 0, w, h);
+    oc.restore();
+  } else {
+    oc.drawImage(img, 0, sy, img.width, sh, 0, 0, w, h);
+  }
+  oc.globalCompositeOperation = "destination-in";
+  const g = oc.createLinearGradient(0, 0, fade, 0);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, "rgba(0,0,0,1)");
+  oc.fillStyle = g;
+  oc.fillRect(0, 0, w, h);
+  oc.globalCompositeOperation = "source-over";
+  ctx.drawImage(fadeSheet, x, y);
+}
+
 function drawParallax(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -150,23 +200,33 @@ function drawParallax(
   viewH: number,
   srcTop = 0,
   flipSecond = true,
-  worldW = 0,
+  _worldW = 0,
+  seamFade = 0,
+  lockPan = false,
 ) {
   const destH = viewH + 80;
   const aspectW = Math.round(destH * (img.width / Math.max(1, img.height - srcTop)));
-  const coverW = viewW + 40;
-  const travel = Math.max(0, worldW - viewW);
-  const noWrapW = worldW > 0 ? Math.ceil(travel * factor + viewW + 160) : 0;
-  const destW = Math.max(coverW, aspectW, noWrapW);
-  const shift = wrap(camX * factor, destW);
-  const x0 = -wrap(shift, destW);
-  blitLayer(ctx, img, x0 - 1, yOff, destW + 2, destH, false, srcTop);
-  const firstEnd = x0 + destW;
-  if (firstEnd < viewW + 4) {
-    blitLayer(ctx, img, x0 + destW - 1, yOff, destW + 2, destH, flipSecond, srcTop);
-    if (!flipSecond) {
-      blitLayer(ctx, img, x0 + destW * 2 - 1, yOff, destW + 2, destH, false, srcTop);
+  const tileW = Math.max(viewW + 40, aspectW);
+  const fade = Math.max(0, Math.min(seamFade, Math.floor(tileW / 5)));
+  let shift = camX * factor;
+  if (lockPan) {
+    shift = Math.min(shift, Math.max(0, tileW - viewW));
+    blitLayer(ctx, img, -shift - 1, yOff, tileW + 2, destH, false, srcTop);
+    return;
+  }
+  const x0 = -shift;
+  let first = true;
+  for (let k = 0; k < 16; k++) {
+    const x = x0 + k * tileW;
+    if (x >= viewW + 4) break;
+    if (x + tileW < -2) continue;
+    const flip = flipSecond && (k & 1) !== 0;
+    if (!first && fade > 1) {
+      blitLayerFadeLeft(ctx, img, x - fade, yOff, tileW + 2, destH, flip, srcTop, fade);
+    } else {
+      blitLayer(ctx, img, x - 1, yOff, tileW + 2, destH, flip, srcTop);
     }
+    first = false;
   }
 }
 
@@ -720,18 +780,19 @@ export function renderWorld(
         : sim.world.theme === "cinder"
           ? { sky: images.cinderSky, far: images.cinderFar, mid: images.cinderMid, near: images.cinderNear }
           : { sky: images.sky, far: images.far, mid: images.mid, near: images.near };
-    const worldW = sim.world.width;
     ctx.imageSmoothingQuality = "medium";
     if (act2) {
-      drawParallax(ctx, pack.sky, 0.03, -40, cx, vw, vh, 0, false);
-      drawParallax(ctx, pack.far, 0.1, -16, cx, vw, vh, 0, false);
-      drawParallax(ctx, pack.mid, 0.22, -8, cx, vw, vh, 0, false);
-      drawParallax(ctx, pack.near, 0.4, 0, cx, vw, vh, 0, false);
+      const fade = sim.world.theme === "cinder" ? 96 : 0;
+      drawParallax(ctx, pack.sky, 0.03, -40, cx, vw, vh, 0, false, 0, fade);
+      drawParallax(ctx, pack.far, 0.1, -16, cx, vw, vh, 0, false, 0, fade);
+      drawParallax(ctx, pack.mid, 0.22, -8, cx, vw, vh, 0, false, 0, fade);
+      drawParallax(ctx, pack.near, 0.4, 0, cx, vw, vh, 0, false, 0, fade);
     } else {
-      drawParallax(ctx, pack.sky, 0.03, -80, cx, vw, vh, Math.round(pack.sky.height * 0.62), true, worldW);
-      drawParallax(ctx, pack.far, 0.1, -72, cx, vw, vh, Math.round(pack.far.height * 0.22), true, worldW);
-      drawParallax(ctx, pack.mid, 0.22, -28, cx, vw, vh, Math.round(pack.mid.height * 0.08), true, worldW);
-      drawParallax(ctx, pack.near, 0.4, -4, cx, vw, vh, 0, true, worldW);
+      const fade = 128;
+      drawParallax(ctx, pack.sky, 0.03, -80, cx, vw, vh, Math.round(pack.sky.height * 0.62), false, 0, fade, true);
+      drawParallax(ctx, pack.far, 0.1, -72, cx, vw, vh, Math.round(pack.far.height * 0.22), false, 0, fade, true);
+      drawParallax(ctx, pack.mid, 0.22, -28, cx, vw, vh, Math.round(pack.mid.height * 0.08), false, 0, fade, true);
+      drawParallax(ctx, pack.near, 0.4, -4, cx, vw, vh, 0, false, 0, fade, true);
     }
     ctx.imageSmoothingQuality = "high";
   }
