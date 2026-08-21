@@ -723,10 +723,10 @@ export function renderWorld(
     const worldW = sim.world.width;
     ctx.imageSmoothingQuality = "medium";
     if (act2) {
-      drawParallax(ctx, pack.sky, 0.03, -40, cx, vw, vh, 0, false, worldW);
-      drawParallax(ctx, pack.far, 0.1, -16, cx, vw, vh, 0, false, worldW);
-      drawParallax(ctx, pack.mid, 0.22, -8, cx, vw, vh, 0, false, worldW);
-      drawParallax(ctx, pack.near, 0.4, 0, cx, vw, vh, 0, false, worldW);
+      drawParallax(ctx, pack.sky, 0.03, -40, cx, vw, vh, 0, false);
+      drawParallax(ctx, pack.far, 0.1, -16, cx, vw, vh, 0, false);
+      drawParallax(ctx, pack.mid, 0.22, -8, cx, vw, vh, 0, false);
+      drawParallax(ctx, pack.near, 0.4, 0, cx, vw, vh, 0, false);
     } else {
       drawParallax(ctx, pack.sky, 0.03, -80, cx, vw, vh, Math.round(pack.sky.height * 0.62), true, worldW);
       drawParallax(ctx, pack.far, 0.1, -72, cx, vw, vh, Math.round(pack.far.height * 0.22), true, worldW);
