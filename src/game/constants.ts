@@ -23,5 +23,10 @@ export const JUMP_CUT = 0.55;
 export const JUMP_GRACE = 0.05;
 export const JUMP_LOCK = 0.08;
 
-export const LAST_LEVEL_ID = 9;
+export const LAST_LEVEL_ID = 19;
 export const SAVE_KEY = "lumen-hollow-save";
+
+export const SLICK_FRICTION = 420;
+export const SLICK_ACCEL = 1600;
+export const BOUNCE_VEL = -780;
+export const BOUNCE_SQUASH = 0.22;

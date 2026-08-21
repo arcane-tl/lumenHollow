@@ -13,7 +13,48 @@ function onPlat(x: number, surfaceY: number, w: number): Hazard {
 }
 
 function lantern(x: number, surfaceY: number): Omit<Checkpoint, "active"> {
-  return { x, y: surfaceY - 54, w: 20, h: 54 };
+  return { x, y: surfaceY - 54, w: 20, h: 54, style: "lantern" };
+}
+
+function censer(x: number, surfaceY: number): Omit<Checkpoint, "active"> {
+  return { x, y: surfaceY - 54, w: 20, h: 54, style: "censer" };
+}
+
+function brazier(x: number, surfaceY: number): Omit<Checkpoint, "active"> {
+  return { x, y: surfaceY - 54, w: 22, h: 54, style: "brazier" };
+}
+
+function brambleOn(x: number, w: number): Hazard {
+  return { kind: "spike", style: "bramble", x, y: GROUND - SPIKE_H, w, h: SPIKE_H };
+}
+
+function bramblePlat(x: number, surfaceY: number, w: number): Hazard {
+  return { kind: "spike", style: "bramble", x, y: surfaceY - SPIKE_H, w, h: SPIKE_H };
+}
+
+function millSaw(
+  x: number,
+  y: number,
+  axis: "x" | "y",
+  a: number,
+  b: number,
+  speed = 1.2,
+  phase = 0,
+): Hazard {
+  return {
+    kind: "saw",
+    x,
+    y,
+    w: 36,
+    h: 36,
+    move: { axis, a, b, speed, phase },
+    prevX: x,
+    prevY: y,
+  };
+}
+
+function dripSpout(x: number, y: number, interval = 1.5, delay = 0.2): Hazard {
+  return { kind: "spout", x: x - 18, y, w: 36, h: 70, interval, cool: delay };
 }
 
 function timed(x: number, y: number, w: number, ..._rest: number[]): Omit<Platform, "prevX" | "prevY"> {
@@ -501,6 +542,380 @@ export const LEVELS: LevelDef[] = [
     checkpoints: [lantern(1288, 260), lantern(2000, GROUND)],
     flag: { x: 3860, y: GROUND - 110, w: 40, h: 110 },
   },
+  {
+    id: 10,
+    name: "Reed Wake",
+    blurb: "The woods thicken. Watch the bramble.",
+    theme: "thorn",
+    width: 3100,
+    height: 540,
+    spawnX: 72,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 720, h: 80, kind: "solid", sprite: "wood" },
+      { x: 860, y: 390, w: 160, h: 24, kind: "solid", sprite: "wood" },
+      { x: 1140, y: GROUND, w: 520, h: 80, kind: "solid", sprite: "wood" },
+      { x: 1780, y: 350, w: 150, h: 24, kind: "solid", sprite: "wood" },
+      { x: 2060, y: 300, w: 140, h: 24, kind: "oneway", sprite: "wood" },
+      { x: 2360, y: GROUND, w: 360, h: 80, kind: "solid", sprite: "wood" },
+      { x: 2820, y: 390, w: 160, h: 24, kind: "solid", sprite: "wood" },
+    ],
+    hazards: [brambleOn(1280, 140), brambleOn(2520, 80)],
+    coins: [
+      { x: 300, y: 404, r: 11 },
+      { x: 920, y: 348, r: 11 },
+      { x: 1500, y: 404, r: 11 },
+      { x: 1840, y: 308, r: 11 },
+      { x: 2120, y: 258, r: 11 },
+      { x: 2440, y: 404, r: 11 },
+      { x: 2660, y: 404, r: 11 },
+    ],
+    checkpoints: [censer(1600, GROUND)],
+    flag: { x: 2900, y: 280, w: 40, h: 110 },
+  },
+  {
+    id: 11,
+    name: "Slip Root",
+    blurb: "The bark is wet. You will slide.",
+    theme: "thorn",
+    width: 2800,
+    height: 540,
+    spawnX: 72,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 420, h: 80, kind: "solid", sprite: "wood" },
+      { x: 520, y: 400, w: 280, h: 24, kind: "slick", sprite: "wood" },
+      { x: 920, y: 340, w: 240, h: 24, kind: "slick", sprite: "wood" },
+      { x: 1320, y: GROUND, w: 360, h: 80, kind: "solid", sprite: "wood" },
+      { x: 1780, y: 360, w: 300, h: 24, kind: "slick", sprite: "wood" },
+      { x: 2200, y: 300, w: 180, h: 24, kind: "slick", sprite: "wood" },
+      { x: 2540, y: 360, w: 180, h: 24, kind: "solid", sprite: "wood" },
+    ],
+    hazards: [bramblePlat(640, 400, 70)],
+    coins: [
+      { x: 240, y: 404, r: 11 },
+      { x: 720, y: 358, r: 11 },
+      { x: 1040, y: 298, r: 11 },
+      { x: 1480, y: 404, r: 11 },
+      { x: 1920, y: 318, r: 11 },
+      { x: 2280, y: 258, r: 11 },
+      { x: 2320, y: 258, r: 11 },
+    ],
+    checkpoints: [censer(1460, GROUND)],
+    flag: { x: 2640, y: 250, w: 40, h: 110 },
+  },
+  {
+    id: 12,
+    name: "Cap Leap",
+    blurb: "The caps throw you. Let them.",
+    theme: "thorn",
+    width: 2720,
+    height: 560,
+    spawnX: 72,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 480, h: 80, kind: "solid", sprite: "wood" },
+      { x: 560, y: 400, w: 100, h: 22, kind: "bounce", sprite: "wood" },
+      { x: 850, y: 280, w: 100, h: 24, kind: "solid", sprite: "wood" },
+      { x: 1120, y: 400, w: 100, h: 22, kind: "bounce", sprite: "wood" },
+      { x: 1395, y: 255, w: 100, h: 24, kind: "solid", sprite: "wood" },
+      { x: 1720, y: GROUND, w: 380, h: 80, kind: "solid", sprite: "wood" },
+      { x: 2220, y: 380, w: 100, h: 22, kind: "bounce", sprite: "wood" },
+      { x: 2500, y: 250, w: 110, h: 24, kind: "solid", sprite: "wood" },
+    ],
+    hazards: [bramblePlat(914, 280, 36), bramblePlat(1459, 255, 36), brambleOn(1880, 100)],
+    coins: [
+      { x: 280, y: 404, r: 11 },
+      { x: 880, y: 238, r: 11 },
+      { x: 1425, y: 213, r: 11 },
+      { x: 1760, y: 404, r: 11 },
+      { x: 2080, y: 404, r: 11 },
+    ],
+    checkpoints: [censer(2020, GROUND)],
+    flag: { x: 2565, y: 140, w: 40, h: 110 },
+  },
+  {
+    id: 13,
+    name: "Sawfen",
+    blurb: "The thicket bites. Watch the bramble.",
+    theme: "thorn",
+    width: 2640,
+    height: 540,
+    spawnX: 72,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 560, h: 80, kind: "solid", sprite: "wood" },
+      { x: 680, y: 390, w: 180, h: 24, kind: "solid", sprite: "wood" },
+      { x: 1000, y: GROUND, w: 640, h: 80, kind: "solid", sprite: "wood" },
+      { x: 1760, y: 340, w: 160, h: 24, kind: "solid", sprite: "wood" },
+      { x: 2060, y: 280, w: 140, h: 24, kind: "oneway", sprite: "wood" },
+      { x: 2280, y: GROUND, w: 260, h: 80, kind: "solid", sprite: "wood" },
+    ],
+    hazards: [bramblePlat(790, 390, 56), brambleOn(1180, 140), brambleOn(2288, 64)],
+    coins: [
+      { x: 300, y: 404, r: 11 },
+      { x: 720, y: 348, r: 11 },
+      { x: 1280, y: 404, r: 11 },
+      { x: 1820, y: 298, r: 11 },
+      { x: 2120, y: 238, r: 11 },
+      { x: 2180, y: 238, r: 11 },
+    ],
+    checkpoints: [censer(1520, GROUND)],
+    flag: { x: 2460, y: GROUND - 110, w: 40, h: 110 },
+  },
+  {
+    id: 14,
+    name: "Thorn Ferry",
+    blurb: "Ride the root. Mind the bramble.",
+    theme: "thorn",
+    width: 3360,
+    height: 560,
+    spawnX: 72,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 400, h: 80, kind: "solid", sprite: "wood" },
+      {
+        x: 560,
+        y: 360,
+        w: 150,
+        h: 22,
+        kind: "moving",
+        sprite: "wood",
+        move: { axis: "x", a: 480, b: 820, speed: 0.7, phase: 0 },
+      },
+      { x: 1000, y: 300, w: 160, h: 24, kind: "solid", sprite: "wood" },
+      {
+        x: 1320,
+        y: 280,
+        w: 148,
+        h: 22,
+        kind: "moving",
+        sprite: "wood",
+        move: { axis: "y", a: 210, b: 380, speed: 0.65, phase: 0.3 },
+      },
+      { x: 1680, y: GROUND, w: 420, h: 80, kind: "solid", sprite: "wood" },
+      { x: 2220, y: 340, w: 100, h: 22, kind: "bounce", sprite: "wood" },
+      { x: 2515, y: 240, w: 100, h: 24, kind: "solid", sprite: "wood" },
+      {
+        x: 2720,
+        y: 260,
+        w: 140,
+        h: 22,
+        kind: "moving",
+        sprite: "wood",
+        move: { axis: "x", a: 2660, b: 3060, speed: 0.7, phase: 0 },
+      },
+      { x: 3080, y: 280, w: 160, h: 24, kind: "solid", sprite: "wood" },
+    ],
+    hazards: [bramblePlat(1100, 300, 50), bramblePlat(2579, 240, 36), brambleOn(1780, 90)],
+    coins: [
+      { x: 260, y: 404, r: 11 },
+      { x: 640, y: 318, r: 11 },
+      { x: 1060, y: 258, r: 11 },
+      { x: 1380, y: 180, r: 11 },
+      { x: 1860, y: 404, r: 11 },
+      { x: 2540, y: 198, r: 11 },
+      { x: 2700, y: 220, r: 11 },
+    ],
+    checkpoints: [censer(1860, GROUND)],
+    flag: { x: 3160, y: 170, w: 40, h: 110 },
+  },
+  {
+    id: 15,
+    name: "Cinder Sill",
+    blurb: "The well is warmer. The iron remembers.",
+    theme: "cinder",
+    width: 2640,
+    height: 540,
+    spawnX: 72,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 640, h: 80, kind: "solid", sprite: "iron" },
+      { x: 780, y: 390, w: 160, h: 24, kind: "solid", sprite: "iron" },
+      { x: 1060, y: GROUND, w: 560, h: 80, kind: "solid", sprite: "iron" },
+      { x: 1740, y: 340, w: 150, h: 24, kind: "solid", sprite: "iron" },
+      { x: 2040, y: 280, w: 160, h: 24, kind: "oneway", sprite: "iron" },
+      { x: 2280, y: GROUND, w: 280, h: 80, kind: "solid", sprite: "iron" },
+    ],
+    hazards: [onGround(1180, 120), onGround(2344, 180)],
+    coins: [
+      { x: 300, y: 404, r: 11 },
+      { x: 840, y: 348, r: 11 },
+      { x: 1500, y: 404, r: 11 },
+      { x: 1800, y: 298, r: 11 },
+      { x: 1820, y: 298, r: 11 },
+      { x: 1880, y: 298, r: 11 },
+    ],
+    checkpoints: [brazier(1580, GROUND)],
+    flag: { x: 2120, y: 170, w: 40, h: 110 },
+  },
+  {
+    id: 16,
+    name: "Mill Mouth",
+    blurb: "Teeth on iron. Do not linger.",
+    theme: "cinder",
+    width: 2560,
+    height: 540,
+    spawnX: 72,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 480, h: 80, kind: "solid", sprite: "iron" },
+      { x: 600, y: 380, w: 180, h: 24, kind: "solid", sprite: "iron" },
+      { x: 920, y: GROUND, w: 700, h: 80, kind: "solid", sprite: "iron" },
+      { x: 1740, y: 330, w: 160, h: 24, kind: "solid", sprite: "iron" },
+      { x: 2040, y: 270, w: 140, h: 24, kind: "oneway", sprite: "iron" },
+      { x: 2300, y: GROUND, w: 180, h: 80, kind: "solid", sprite: "iron" },
+    ],
+    hazards: [
+      millSaw(730, 320, "x", 700, 760, 1.35, 0),
+      millSaw(1100, GROUND - 40, "x", 980, 1500, 1.05, 0.5),
+      millSaw(2240, 360, "x", 2200, 2280, 1.2, 0.2),
+    ],
+    coins: [
+      { x: 280, y: 404, r: 11 },
+      { x: 650, y: 338, r: 11 },
+      { x: 1280, y: 404, r: 11 },
+      { x: 1800, y: 288, r: 11 },
+      { x: 2100, y: 228, r: 11 },
+      { x: 2160, y: 228, r: 11 },
+    ],
+    checkpoints: [brazier(1560, GROUND)],
+    flag: { x: 2400, y: GROUND - 110, w: 40, h: 110 },
+  },
+  {
+    id: 17,
+    name: "Drip Well",
+    blurb: "The ceiling weeps fire.",
+    theme: "cinder",
+    width: 2560,
+    height: 560,
+    spawnX: 72,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 500, h: 80, kind: "solid", sprite: "iron" },
+      { x: 620, y: 390, w: 160, h: 24, kind: "solid", sprite: "iron" },
+      { x: 900, y: GROUND, w: 520, h: 80, kind: "solid", sprite: "iron" },
+      { x: 1540, y: 340, w: 180, h: 24, kind: "solid", sprite: "iron" },
+      { x: 1860, y: 280, w: 150, h: 24, kind: "oneway", sprite: "iron" },
+      { x: 2160, y: GROUND, w: 260, h: 80, kind: "solid", sprite: "iron" },
+    ],
+    hazards: [
+      dripSpout(280, 120, 1.6, 0.1),
+      dripSpout(700, 160, 1.4, 0.5),
+      dripSpout(1100, 120, 1.5, 0.2),
+      turret(1580, 340, "right", 1.9, 0.4),
+      dripSpout(2220, 140, 1.35, 0.3),
+      dripSpout(2300, 140, 1.55, 0.95),
+    ],
+    coins: [
+      { x: 240, y: 404, r: 11 },
+      { x: 680, y: 348, r: 11 },
+      { x: 1180, y: 404, r: 11 },
+      { x: 1620, y: 298, r: 11 },
+      { x: 1920, y: 238, r: 11 },
+      { x: 2180, y: 404, r: 11 },
+    ],
+    checkpoints: [brazier(1280, GROUND)],
+    flag: { x: 2340, y: GROUND - 110, w: 40, h: 110 },
+  },
+  {
+    id: 18,
+    name: "Iron Choir",
+    blurb: "Slide the hymn. Step while the iron remembers.",
+    theme: "cinder",
+    width: 3180,
+    height: 560,
+    spawnX: 72,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 400, h: 80, kind: "solid", sprite: "iron" },
+      { x: 500, y: 400, w: 260, h: 24, kind: "slick", sprite: "iron" },
+      { ...timed(860, 360, 140), sprite: "iron" },
+      { x: 1120, y: 300, w: 160, h: 24, kind: "slick", sprite: "iron" },
+      { x: 1420, y: GROUND, w: 360, h: 80, kind: "solid", sprite: "iron" },
+      { ...timed(1880, 350, 140), sprite: "iron" },
+      { x: 2160, y: 300, w: 150, h: 24, kind: "slick", sprite: "iron" },
+      { x: 2460, y: 240, w: 140, h: 24, kind: "solid", sprite: "iron" },
+      { ...timed(2680, 280, 140), sprite: "iron" },
+      { x: 2920, y: 300, w: 160, h: 24, kind: "solid", sprite: "iron" },
+      { x: 2640, y: GROUND, w: 220, h: 80, kind: "solid", sprite: "iron" },
+    ],
+    hazards: [dripSpout(1180, 140, 1.5, 0.4), millSaw(2260, 250, "x", 2230, 2300, 1.25, 0), onGround(2696, 148)],
+    coins: [
+      { x: 240, y: 404, r: 11 },
+      { x: 620, y: 358, r: 11 },
+      { x: 920, y: 318, r: 11 },
+      { x: 1180, y: 258, r: 11 },
+      { x: 1580, y: 404, r: 11 },
+      { x: 2220, y: 258, r: 11 },
+      { x: 2520, y: 198, r: 11 },
+      { x: 2740, y: 238, r: 11 },
+    ],
+    checkpoints: [brazier(1560, GROUND)],
+    flag: { x: 3000, y: 190, w: 40, h: 110 },
+  },
+  {
+    id: 19,
+    name: "Deep Crown",
+    blurb: "Everything the well learned, at once.",
+    theme: "cinder",
+    width: 3720,
+    height: 580,
+    spawnX: 80,
+    spawnY: GROUND - PLAYER_H,
+    platforms: [
+      { x: 0, y: GROUND, w: 380, h: 80, kind: "solid", sprite: "iron" },
+      { x: 460, y: 390, w: 140, h: 24, kind: "solid", sprite: "iron" },
+      { x: 700, y: 400, w: 100, h: 22, kind: "bounce", sprite: "iron" },
+      {
+        x: 1020,
+        y: 300,
+        w: 150,
+        h: 22,
+        kind: "moving",
+        sprite: "iron",
+        move: { axis: "y", a: 220, b: 380, speed: 0.7, phase: 0 },
+      },
+      { x: 1220, y: 260, w: 180, h: 24, kind: "slick", sprite: "iron" },
+      { ...timed(1500, 310, 130), sprite: "iron" },
+      { x: 1760, y: GROUND, w: 420, h: 80, kind: "solid", sprite: "iron" },
+      { x: 2280, y: 380, w: 140, h: 24, kind: "solid", sprite: "iron" },
+      {
+        x: 2540,
+        y: 330,
+        w: 150,
+        h: 22,
+        kind: "moving",
+        sprite: "iron",
+        move: { axis: "x", a: 2420, b: 2760, speed: 0.72, phase: 0.5 },
+      },
+      { x: 2900, y: 300, w: 160, h: 24, kind: "solid", sprite: "iron" },
+      { x: 3160, y: 400, w: 100, h: 22, kind: "bounce", sprite: "iron" },
+      { x: 3435, y: 250, w: 110, h: 24, kind: "solid", sprite: "iron" },
+      { x: 3400, y: GROUND, w: 200, h: 80, kind: "solid", sprite: "iron" },
+    ],
+    hazards: [
+      turret(480, 390, "right", 1.8, 0.5),
+      millSaw(1340, 210, "x", 1310, 1380, 1.2, 0.3),
+      dripSpout(1860, 140, 1.45, 0.2),
+      turret(2940, 300, "left", 1.8, 0.7),
+      onGround(3464, 120),
+    ],
+    coins: [
+      { x: 500, y: 348, r: 11 },
+      { x: 740, y: 358, r: 11 },
+      { x: 1080, y: 200, r: 11 },
+      { x: 1260, y: 218, r: 11 },
+      { x: 1560, y: 268, r: 11 },
+      { x: 1860, y: 404, r: 11 },
+      { x: 2340, y: 338, r: 11 },
+      { x: 2600, y: 280, r: 11 },
+      { x: 2980, y: 258, r: 11 },
+      { x: 3220, y: 358, r: 11 },
+    ],
+    checkpoints: [brazier(1288, 260), brazier(2000, GROUND)],
+    flag: { x: 3495, y: 140, w: 40, h: 110 },
+  },
 ];
 
 function overlaps(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }, pad = 0) {
@@ -534,7 +949,11 @@ function seatFor(x: number, feetY: number, platforms: Platform[]) {
 }
 
 function blockedAt(x: number, y: number, world: World) {
-  return world.hazards.some((hz) => (hz.kind ?? "spike") === "spike" && overlaps({ x, y, w: PLAYER_W, h: PLAYER_H }, hz, 10));
+  return world.hazards.some((hz) => {
+    const kind = hz.kind ?? "spike";
+    if (kind !== "spike" && kind !== "saw") return false;
+    return overlaps({ x, y, w: PLAYER_W, h: PLAYER_H }, hz, 10);
+  });
 }
 
 export function spawnFromCheckpoint(cp: Checkpoint, world: World) {
@@ -570,7 +989,7 @@ export function spawnFromCheckpoint(cp: Checkpoint, world: World) {
 
 function sanitizeWorld(world: World) {
   for (const h of world.hazards) {
-    if (h.kind === "turret") continue;
+    if (h.kind === "turret" || h.kind === "saw" || h.kind === "spout") continue;
     let seat: Platform | null = null;
     for (const p of world.platforms) {
       if (h.x + h.w < p.x + 10 || h.x > p.x + p.w - 10) continue;
@@ -606,7 +1025,10 @@ function sanitizeWorld(world: World) {
 
   for (const c of world.coins) {
     const grab = { x: c.x - 24, y: c.y - 24, w: 48, h: 52 };
-    const hot = world.hazards.find((h) => (h.kind ?? "spike") === "spike" && overlaps(grab, h, 16));
+    const hot = world.hazards.find((h) => {
+      const kind = h.kind ?? "spike";
+      return (kind === "spike" || kind === "saw") && overlaps(grab, h, 16);
+    });
     if (!hot) continue;
     const left = hot.x - 56;
     const right = hot.x + hot.w + 56;
@@ -618,6 +1040,35 @@ function sanitizeWorld(world: World) {
       break;
     }
   }
+
+  const flag = world.flag;
+  const keepOut = { x: flag.x - 120, y: flag.y - 24, w: flag.w + 200, h: flag.h + 48 };
+  for (const c of world.coins) {
+    const grab = { x: c.x - 14, y: c.y - 14, w: 28, h: 28 };
+    if (!overlaps(grab, keepOut, 0)) continue;
+    for (const nx of [flag.x - 150, flag.x - 210, flag.x - 270]) {
+      if (nx < 40) continue;
+      const next = { x: nx - 14, y: c.y - 14, w: 28, h: 28 };
+      if (overlaps(next, keepOut, 0)) continue;
+      if (world.hazards.some((h) => overlaps(next, h, 12))) continue;
+      c.x = nx;
+      break;
+    }
+  }
+}
+
+export const ACTS = [
+  { id: 1, name: "Musty Forest", start: 0, count: 10 },
+  { id: 2, name: "Bramble Ruins", start: 10, count: 10 },
+] as const;
+
+export function actForLevel(levelId: number) {
+  return ACTS.find((a) => levelId >= a.start && levelId < a.start + a.count) ?? ACTS[0];
+}
+
+export function levelsInAct(actId: number) {
+  const act = ACTS.find((a) => a.id === actId) ?? ACTS[0];
+  return LEVELS.filter((lvl) => lvl.id >= act.start && lvl.id < act.start + act.count);
 }
 
 export function bootLevel(id: number): World {
@@ -645,6 +1096,7 @@ export function bootLevel(id: number): World {
     }),
     hazards: def.hazards.map((h) => ({ ...h, kind: h.kind ?? "spike", cool: h.cool ?? h.interval ?? 0 })),
     bolts: [],
+    drips: [],
     coins: def.coins.map((c, i) => ({ ...c, taken: false, bob: i * 0.7 })),
     checkpoints: def.checkpoints.map((c) => ({ ...c, active: false })),
     flag: { ...def.flag },

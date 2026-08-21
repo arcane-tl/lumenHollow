@@ -3,8 +3,8 @@ import { JuiceAudio } from "./audio";
 import { loadImages, type GameImages } from "./assets";
 import { Input } from "./input";
 import { fitTransform, paintStage, renderWorld } from "./render";
-import { createSim, resetSim, respawnAtCheckpoint, stepSim, type Sim } from "./sim";
-import { recordClear, recordScore, wouldRank } from "./save";
+import { burstConfetti, createSim, resetSim, respawnAtCheckpoint, stepSim, tickWinFx, type Sim } from "./sim";
+import { recordClear, recordScore } from "./save";
 import { previewRankList, wouldRankList } from "./scores";
 import { fetchLevelScores, isCloudOn, postLevelScore } from "./cloud";
 import { useGameStore } from "./store";
@@ -35,6 +35,7 @@ declare global {
       getFacing: () => number;
       setKeys: (codes: string[] | null) => void;
       setPos?: (x: number, y: number) => void;
+      setVel?: (vx: number, vy: number) => void;
       getJumpsLeft?: () => number;
       getGrounded?: () => boolean;
       getVy?: () => number;
@@ -135,6 +136,8 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
       lastRank: null,
     });
     audio.unlock();
+    const theme = LEVELS[id]?.theme ?? "moss";
+    audio.playBed(theme === "thorn" || theme === "cinder");
     grabPlayFocus(canvas);
     pushHudTime(0);
   };
@@ -159,6 +162,8 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
     if (overlay === "none" && actions.restartPressed && sim) {
       resetSim(sim, currentLevel);
     }
+
+    if (sim && overlay !== "none" && sim.won) tickWinFx(sim, raw);
 
     if (sim && overlay === "none") {
       let offeredJump = false;
@@ -188,19 +193,22 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
           store().applySave(cleared);
           store().patch({ runTime: snap.time });
           void (async () => {
-            let list = cleared.scores[String(snap.world.id)] ?? [];
+            const local = cleared.scores[String(snap.world.id)] ?? [];
+            let remote: typeof local | null = null;
             if (isCloudOn()) {
-              const remote = await fetchLevelScores(snap.world.id);
-              if (remote) {
-                list = remote;
+              const fetched = await fetchLevelScores(snap.world.id);
+              if (fetched) {
+                remote = fetched;
                 store().patch({
-                  cloudByLevel: { ...store().cloudByLevel, [snap.world.id]: remote },
+                  cloudByLevel: { ...store().cloudByLevel, [snap.world.id]: fetched },
                 });
               }
             }
-            const rank = previewRankList(list, snap.coins, snap.time);
-            store().patch({ lastRank: rank });
-            if (wouldRankList(list, snap.coins, snap.time) || wouldRank(cleared, snap.world.id, snap.coins, snap.time)) {
+            const list = remote && remote.length ? remote : local;
+            const ranked = wouldRankList(list, snap.coins, snap.time);
+            store().patch({ lastRank: ranked ? previewRankList(list, snap.coins, snap.time) : null });
+            if (ranked) {
+              burstConfetti(snap, snap.world.flag.x + snap.world.flag.w / 2, snap.world.flag.y + 24);
               store().setOverlay("score");
             } else {
               store().setOverlay("won");
@@ -228,10 +236,8 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (!sim) paintStage(ctx, images, canvas.width, canvas.height);
       ctx.setTransform(scale * dpr, 0, 0, scale * dpr, ox * dpr, oy * dpr);
-      if (resized) {
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "low";
-      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       if (sim) renderWorld(ctx, sim, images, flash);
     }
     audio.pump();
@@ -253,6 +259,11 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
       sim.player.vx = 0;
       sim.player.vy = 0;
       sim.camera.x = Math.max(0, x - sim.viewW * 0.4);
+    },
+    setVel: (vx: number, vy: number) => {
+      if (!sim) return;
+      sim.player.vx = vx;
+      sim.player.vy = vy;
     },
     getJumpsLeft: () => sim?.player.jumpsLeft ?? 0,
     getGrounded: () => sim?.player.grounded ?? false,
@@ -277,7 +288,14 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
         ? {
             spawnX: sim.player.spawnX,
             spawnY: sim.player.spawnY,
-            hazards: sim.world.hazards.map((h) => ({ x: h.x, y: h.y, w: h.w, h: h.h })),
+            hazards: sim.world.hazards.map((h) => ({
+              x: h.x,
+              y: h.y,
+              w: h.w,
+              h: h.h,
+              kind: h.kind,
+              move: h.move ? { ...h.move } : undefined,
+            })),
             checkpoints: sim.world.checkpoints.map((c) => ({
               x: c.x,
               y: c.y,
@@ -285,7 +303,15 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
               h: c.h,
               active: c.active,
             })),
-            platforms: sim.world.platforms.map((p) => ({ x: p.x, y: p.y, w: p.w, h: p.h })),
+            platforms: sim.world.platforms.map((p) => ({
+              x: p.x,
+              y: p.y,
+              w: p.w,
+              h: p.h,
+              kind: p.kind,
+            })),
+            flag: { ...sim.world.flag },
+            width: sim.world.width,
             bolts: (sim.world.bolts ?? []).map((b) => ({ x: b.x, y: b.y, w: b.w, h: b.h, vy: b.vy })),
             crumbles: sim.world.platforms
               .filter((p) => p.crumble)
@@ -327,13 +353,15 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
     toTitle: () => {
       sim = null;
       store().setOverlay("title");
+      audio.playBed(false);
     },
     toSelect: () => {
       sim = null;
       store().setOverlay("select");
     },
     toBoard: () => {
-      store().setOverlay("board");
+      sim = null;
+      store().setOverlay("select");
     },
     toggleMute: () => {
       audio.unlock();

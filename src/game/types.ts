@@ -1,9 +1,12 @@
 export type Overlay = "title" | "select" | "none" | "paused" | "dead" | "won" | "score" | "board";
-export type DeathReason = "spike" | "pit" | "arrow" | null;
+export type DeathReason = "spike" | "pit" | "arrow" | "saw" | "drip" | null;
 export type AnimName = "idle" | "run" | "jump" | "fall";
 
-export type PlatformKind = "solid" | "oneway" | "moving" | "timed";
-export type LevelTheme = "moss" | "ember" | "indigo" | "ash";
+export type PlatformKind = "solid" | "oneway" | "moving" | "timed" | "slick" | "bounce";
+export type LevelTheme = "moss" | "ember" | "indigo" | "ash" | "thorn" | "cinder";
+export type PlatformSprite = "moss" | "raft" | "stone" | "wood" | "iron";
+export type CheckpointStyle = "lantern" | "censer" | "brazier";
+export type HazardKind = "spike" | "turret" | "saw" | "spout";
 
 export interface Mover {
   axis: "x" | "y";
@@ -29,16 +32,17 @@ export interface Platform {
   w: number;
   h: number;
   kind: PlatformKind;
-  sprite: "moss" | "raft" | "stone";
+  sprite: PlatformSprite;
   move?: Mover;
   timer?: { period: number; duty: number; phase: number };
   crumble?: Crumble;
+  squash?: number;
   prevX: number;
   prevY: number;
 }
 
 export interface Hazard {
-  kind: "spike" | "turret";
+  kind: HazardKind;
   x: number;
   y: number;
   w: number;
@@ -46,6 +50,10 @@ export interface Hazard {
   dir?: { x: number; y: number };
   interval?: number;
   cool?: number;
+  move?: Mover;
+  style?: "bramble" | "iron";
+  prevX?: number;
+  prevY?: number;
 }
 
 export interface Bolt {
@@ -76,6 +84,7 @@ export interface Checkpoint {
   w: number;
   h: number;
   active: boolean;
+  style?: CheckpointStyle;
 }
 
 export interface Flag {
@@ -94,7 +103,7 @@ export interface Particle {
   max: number;
   size: number;
   color: string;
-  kind: "dust" | "spark" | "burst";
+  kind: "dust" | "spark" | "burst" | "confetti";
 }
 
 export interface Player {
@@ -150,6 +159,7 @@ export interface World {
   platforms: Platform[];
   hazards: Hazard[];
   bolts: Bolt[];
+  drips: Bolt[];
   coins: Coin[];
   checkpoints: Checkpoint[];
   flag: Flag;

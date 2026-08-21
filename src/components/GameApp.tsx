@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Flag, Flame, LogOut, Map, Pause, Play, RotateCcw, Trophy, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Flag, Flame, LogOut, Map, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MenuButtons } from "@/components/MenuButtons";
 import { TouchControls, useTouchPrimary } from "@/components/TouchControls";
 import { mountGame, type GameHandle } from "@/game/loop";
-import { LEVELS } from "@/game/levels";
+import { ACTS, LEVELS, actForLevel, levelsInAct } from "@/game/levels";
 import { useGameStore } from "@/game/store";
+import { LAST_LEVEL_ID } from "@/game/constants";
 import { formatTime, loadSave, scoresFor, NAME_MAX, SCORE_LIMIT, type ScoreEntry } from "@/game/save";
 import { previewRankList } from "@/game/scores";
 import { fetchLevelScores, isCloudOn } from "@/game/cloud";
@@ -99,7 +100,9 @@ export function GameApp() {
           )}
         >
           <div className="mx-auto mt-auto mb-auto w-full max-w-md">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">A dusk-wood platformer</p>
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-accent/90 [text-shadow:0_1px_14px_rgba(18,20,26,0.55)]">
+              A dusk-wood platformer
+            </p>
             <h1
               className={cn(
                 "mt-2 font-display font-medium leading-none tracking-tight",
@@ -108,7 +111,12 @@ export function GameApp() {
             >
               Lumen Hollow
             </h1>
-            <p className={cn("max-w-sm text-sm leading-relaxed text-muted", touchPrimary ? "mt-3" : "mt-4")}>
+            <p
+              className={cn(
+                "max-w-sm text-[15px] leading-relaxed text-fg/85 [text-shadow:0_1px_14px_rgba(18,20,26,0.55)]",
+                touchPrimary ? "mt-3" : "mt-4",
+              )}
+            >
               Run, jump, and double-jump through mossy ruins. Light the lanterns. Reach the flag.
             </p>
             <MenuButtons
@@ -124,17 +132,6 @@ export function GameApp() {
                   onPick: () => begin(0),
                 },
                 { id: "levels", label: <MenuLabel icon={Map}>Levels</MenuLabel>, onPick: () => gameRef.current?.toSelect(), variant: "outline" },
-                {
-                  id: "scores",
-                  label: (
-                    <>
-                      <Trophy className="size-4" />
-                      High scores
-                    </>
-                  ),
-                  onPick: () => gameRef.current?.toBoard(),
-                  variant: "outline",
-                },
               ]}
             />
             <div className={cn("flex justify-center", touchPrimary ? "mt-4" : "mt-6")}>
@@ -144,21 +141,16 @@ export function GameApp() {
         </div>
       )}
 
-      {overlay === "select" && (
-        <LevelSelect
-          onPlay={begin}
-          onBoard={() => gameRef.current?.toBoard()}
-          onBack={() => gameRef.current?.toTitle()}
-        />
+      {(overlay === "select" || overlay === "board") && (
+        <ScoreBoard onPlay={begin} onBack={() => gameRef.current?.toTitle()} />
       )}
-
-      {overlay === "board" && <ScoreBoard onBack={() => gameRef.current?.toTitle()} />}
 
       {overlay === "paused" && (
         <PauseScreen
           onResume={() => gameRef.current?.resume()}
           onRestart={() => gameRef.current?.restart()}
           onMute={() => gameRef.current?.toggleMute()}
+          onLevels={() => gameRef.current?.toSelect()}
           onQuit={() => gameRef.current?.toTitle()}
         />
       )}
@@ -181,7 +173,6 @@ export function GameApp() {
             gameRef.current?.startLevel(id + 1);
           }}
           onReplay={() => gameRef.current?.restart()}
-          onBoard={() => gameRef.current?.toBoard()}
           onLevels={() => gameRef.current?.toSelect()}
           onQuit={() => gameRef.current?.toTitle()}
         />
@@ -208,7 +199,8 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   const snapRef = useRef<{ source: ScoreEntry[]; rank: number } | null>(null);
   nameRef.current = name;
   const cloud = useGameStore((s) => s.cloudByLevel[levelId]);
-  const liveSource = cloud ?? scoresFor(save, levelId);
+  const local = scoresFor(save, levelId);
+  const liveSource = cloud && cloud.length ? cloud : local;
   if (!snapRef.current) {
     snapRef.current = { source: liveSource, rank: previewRankList(liveSource, coins, time) };
   }
@@ -351,67 +343,33 @@ function ArcadeEntry({ onSubmit }: { onSubmit: (name: string) => void }) {
   );
 }
 
-function LevelSelect({
+function ScoreBoard({
   onPlay,
-  onBoard,
   onBack,
 }: {
   onPlay: (id: number) => void;
-  onBoard: () => void;
   onBack: () => void;
 }) {
   const save = useGameStore((s) => s.save);
-  const best = useGameStore((s) => s.best);
-  const touch = useTouchPrimary();
-  const open = LEVELS;
-  return (
-    <div
-      className={cn(
-        "absolute inset-0 z-20 overflow-auto bg-bg/75 backdrop-blur-sm",
-        touch ? "px-4 py-14" : "px-5 py-8",
-      )}
-    >
-      <div className="mx-auto w-full max-w-lg">
-        <h2 className={cn("font-display", touch ? "text-2xl" : "text-3xl")}>Levels</h2>
-        <MenuButtons
-          onCancel={onBack}
-          items={[
-            ...open.map((lvl) => {
-              const lead = scoresFor(save, lvl.id)[0];
-              return {
-                id: `lvl-${lvl.id}`,
-                label: (
-                  <span className="flex w-full items-baseline justify-between gap-3">
-                    <span className={cn("font-display", touch ? "text-base" : "text-lg")}>{lvl.name}</span>
-                    <span className="text-xs tabular-nums text-muted">
-                      {lead
-                        ? `${lead.coins}/${lvl.coins.length} · ${formatTime(lead.time)}`
-                        : `Best ${best[lvl.id] ?? 0}/${lvl.coins.length}`}
-                    </span>
-                  </span>
-                ),
-                onPick: () => onPlay(lvl.id),
-                variant: "outline" as const,
-              };
-            }),
-            { id: "scores", label: "High scores", onPick: onBoard, variant: "outline" as const },
-            { id: "back", label: "Back", onPick: onBack, variant: "outline" as const },
-          ]}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ScoreBoard({ onBack }: { onBack: () => void }) {
-  const save = useGameStore((s) => s.save);
   const cloudByLevel = useGameStore((s) => s.cloudByLevel);
-  const [tab, setTab] = useState(0);
+  const levelId = useGameStore((s) => s.levelId);
+  const [actId, setActId] = useState<number>(() => actForLevel(levelId).id);
+  const trails = levelsInAct(actId);
+  const [tab, setTab] = useState(() => {
+    const start = trails[0]?.id ?? 0;
+    return trails.some((lvl) => lvl.id === levelId) ? levelId : start;
+  });
   const [status, setStatus] = useState(isCloudOn() ? "Loading global board…" : "This device");
   const cloud = cloudByLevel[tab];
-  const rows = cloud ?? scoresFor(save, tab);
-  const trail = LEVELS[tab];
+  const local = scoresFor(save, tab);
+  const rows = cloud && cloud.length ? cloud : local;
+  const totalCoins = LEVELS[tab]?.coins.length ?? 0;
   const touch = useTouchPrimary();
+
+  useEffect(() => {
+    if (trails.some((lvl) => lvl.id === tab)) return;
+    setTab(trails[0]?.id ?? 0);
+  }, [actId, tab, trails]);
 
   useEffect(() => {
     if (!isCloudOn()) return;
@@ -440,52 +398,77 @@ function ScoreBoard({ onBack }: { onBack: () => void }) {
       )}
     >
       <div className="mx-auto w-full max-w-4xl">
-        <h2 className={cn("font-display", touch ? "text-2xl" : "text-3xl")}>High scores</h2>
-        <p className="mt-2 text-sm text-muted">Coins first. Time breaks the tie. · {status}</p>
-        <div className={cn("mt-5 grid items-start gap-4 md:grid-cols-[minmax(13rem,17rem)_minmax(0,1fr)]", touch && "mt-3 gap-3")}>
-          <MenuButtons
-            align="start"
-            className="mt-0"
-            onCancel={onBack}
-            onActive={(id) => {
-              if (id.startsWith("tab-")) setTab(Number(id.slice(4)));
-            }}
-            items={[
-              ...LEVELS.map((lvl) => ({
-                id: `tab-${lvl.id}`,
-                label: lvl.name,
-                onPick: () => setTab(lvl.id),
-                variant: (tab === lvl.id ? "default" : "outline") as "default" | "outline",
-              })),
-              { id: "back", label: "Back", onPick: onBack, variant: "outline" as const },
-            ]}
-          />
+        <h2 className={cn("font-display", touch ? "text-2xl" : "text-3xl")}>Levels</h2>
+        <p className="mt-2 text-sm text-muted">Space plays · coins first, time breaks the tie · {status}</p>
+        <MenuButtons
+          align="start"
+          lead={ACTS.length}
+          onCancel={onBack}
+          onActive={(id) => {
+            if (id.startsWith("act-")) setActId(Number(id.slice(4)));
+            if (id.startsWith("slot-")) {
+              const lvl = trails[Number(id.slice(5))];
+              if (lvl) setTab(lvl.id);
+            }
+          }}
+          items={[
+            ...ACTS.map((act) => ({
+              id: `act-${act.id}`,
+              label: act.name,
+              onPick: () => setActId(act.id),
+              variant: (act.id === actId ? "default" : "outline") as "default" | "outline",
+            })),
+            ...trails.map((lvl, n) => ({
+              id: `slot-${n}`,
+              label: lvl.name,
+              onPick: () => (tab === lvl.id ? onPlay(lvl.id) : setTab(lvl.id)),
+              confirm: () => onPlay(lvl.id),
+              variant: "outline" as const,
+            })),
+            {
+              id: "back",
+              label: <MenuLabel icon={ArrowLeft}>Back</MenuLabel>,
+              onPick: onBack,
+              variant: "outline" as const,
+            },
+          ]}
+          aside={
           <div>
-            <p className={cn("mb-2 font-display", touch ? "text-lg" : "text-xl")}>{trail?.name ?? "Trail"}</p>
-            <ol className="overflow-hidden rounded-xl border border-border bg-surface">
+            <ol
+              className={cn(
+                "flex h-[calc(10*2.75rem+9*0.5rem)] flex-col overflow-hidden rounded-xl border border-border bg-surface",
+                touch && "h-[calc(10*2.25rem+9*0.375rem)]",
+              )}
+            >
               {Array.from({ length: SCORE_LIMIT }, (_, i) => {
                 const row = rows[i];
                 return (
                   <li
                     key={row ? `${row.at}-${i}` : `empty-${i}`}
                     className={cn(
-                      "flex items-baseline justify-between gap-3 border-b border-border last:border-b-0",
-                      touch ? "px-3 py-1.5" : "px-4 py-3",
+                      "flex min-h-0 flex-1 items-center justify-between gap-3 border-b border-border last:border-b-0",
+                      touch ? "px-3" : "px-4",
                     )}
                   >
-                    <span className="flex min-w-0 items-baseline gap-3">
+                    <span className="flex min-w-0 items-center gap-3">
                       <span className="w-6 tabular-nums text-sm text-muted">{i + 1}</span>
                       <span className={cn("truncate font-display", touch ? "text-base" : "text-lg")}>{row?.name ?? "—"}</span>
                     </span>
-                    <span className="shrink-0 tabular-nums text-sm text-muted">
-                      {row ? `${row.coins} · ${formatTime(row.time)}` : "—"}
+                    <span className="flex shrink-0 items-center gap-4 tabular-nums">
+                      <span className="text-sm text-muted">
+                        {row ? `${row.coins}/${totalCoins}` : "—"}
+                      </span>
+                      <span className={cn("w-[4.75rem] text-right font-medium", touch ? "text-sm" : "text-base")}>
+                        {row ? formatTime(row.time) : "—"}
+                      </span>
                     </span>
                   </li>
                 );
               })}
             </ol>
           </div>
-        </div>
+          }
+        />
       </div>
     </div>
   );
@@ -515,11 +498,13 @@ function PauseScreen({
   onResume,
   onRestart,
   onMute,
+  onLevels,
   onQuit,
 }: {
   onResume: () => void;
   onRestart: () => void;
   onMute: () => void;
+  onLevels: () => void;
   onQuit: () => void;
 }) {
   const levelName = useGameStore((s) => s.levelName);
@@ -536,6 +521,7 @@ function PauseScreen({
             label: muted ? <MenuLabel icon={Volume2}>Sound on</MenuLabel> : <MenuLabel icon={VolumeX}>Sound off</MenuLabel>,
             onPick: onMute,
           },
+          { id: "levels", label: <MenuLabel icon={Map}>Levels</MenuLabel>, onPick: onLevels },
           { id: "quit", label: <MenuLabel icon={LogOut}>Quit</MenuLabel>, onPick: onQuit },
         ]}
       />
@@ -562,7 +548,11 @@ function DeadScreen({
           ? "The spikes caught you"
           : deathReason === "arrow"
             ? "An arrow found you"
-            : "The hollow took you"
+            : deathReason === "saw"
+              ? "The mill teeth caught you"
+              : deathReason === "drip"
+                ? "The drip found you"
+                : "The hollow took you"
       }
       subtitle="Respawn at your last lantern, or start the trail over."
     >
@@ -581,13 +571,11 @@ function DeadScreen({
 function WonScreen({
   onNext,
   onReplay,
-  onBoard,
   onLevels,
   onQuit,
 }: {
   onNext: () => void;
   onReplay: () => void;
-  onBoard: () => void;
   onLevels: () => void;
   onQuit: () => void;
 }) {
@@ -597,7 +585,7 @@ function WonScreen({
   const runTime = useGameStore((s) => s.runTime);
   const lastRank = useGameStore((s) => s.lastRank);
   const levelId = useGameStore((s) => s.levelId);
-  const hasNext = levelId < 9;
+  const hasNext = levelId < LAST_LEVEL_ID;
   return (
     <Modal
       title="The flag is yours"
@@ -624,11 +612,6 @@ function WonScreen({
             id: "replay",
             label: <MenuLabel icon={RotateCcw}>Replay</MenuLabel>,
             onPick: onReplay,
-          },
-          {
-            id: "scores",
-            label: <MenuLabel icon={Trophy}>High scores</MenuLabel>,
-            onPick: onBoard,
           },
           { id: "levels", label: <MenuLabel icon={Map}>Levels</MenuLabel>, onPick: onLevels },
           { id: "quit", label: <MenuLabel icon={LogOut}>Quit</MenuLabel>, onPick: onQuit },

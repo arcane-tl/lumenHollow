@@ -18,6 +18,14 @@ const LEAD = [
 const BASS = [
   36, 36, 43, 36, 33, 33, 40, 33, 29, 29, 36, 29, 31, 31, 38, 31, 36, 36, 43, 36, 33, 33, 40, 33, 34, 34, 41, 34, 31, 38, 43, 31,
 ];
+const BPM2 = 104;
+const STEP2 = 60 / BPM2 / 2;
+const LEAD2 = [
+  67, 0, 70, 72, 70, 0, 74, 72, 67, 65, 63, 0, 65, 67, 70, 0, 72, 0, 70, 67, 65, 0, 67, 63, 58, 60, 63, 67, 65, 63, 58, 0,
+];
+const BASS2 = [
+  31, 31, 38, 31, 27, 27, 34, 27, 24, 24, 31, 24, 26, 26, 33, 26, 31, 31, 38, 31, 27, 27, 34, 27, 29, 29, 36, 29, 26, 33, 38, 26,
+];
 
 function midi(n: number) {
   return 440 * 2 ** ((n - 69) / 12);
@@ -49,6 +57,7 @@ export class JuiceAudio {
   private muted = loadMuted();
   private themeOn = false;
   private themeSrc: AudioBufferSourceNode | null = null;
+  private themeName = "theme";
   private buffers = new Map<string, AudioBuffer>();
   private lastLand = 0;
 
@@ -128,6 +137,32 @@ export class JuiceAudio {
       }
     }
     this.buffers.set("theme", theme);
+
+    const loopDur2 = STEPS * STEP2;
+    const theme2 = ctx.createBuffer(1, Math.floor(ctx.sampleRate * loopDur2), ctx.sampleRate);
+    const data2 = theme2.getChannelData(0);
+    for (let step = 0; step < STEPS; step++) {
+      const t0 = step * STEP2;
+      const lead = LEAD2[step];
+      const bass = BASS2[step];
+      const start = Math.floor(t0 * sr);
+      const len = Math.floor(0.22 * sr);
+      for (let i = 0; i < len; i++) {
+        const idx = start + i;
+        if (idx >= data2.length) break;
+        const t = i / sr;
+        const env = Math.exp(-t * 7) * (1 - i / len);
+        if (lead) {
+          const ph = (midi(lead) * t) % 1;
+          data2[idx] += (2 * ph - 1) * 0.055 * env;
+        }
+        if (bass) {
+          const ph = (midi(bass) * t) % 1;
+          data2[idx] += Math.sin(ph * Math.PI * 2) * 0.12 * env;
+        }
+      }
+    }
+    this.buffers.set("theme2", theme2);
   }
 
   setMuted(next: boolean) {
@@ -149,10 +184,20 @@ export class JuiceAudio {
     return this.muted;
   }
 
-  private startTheme() {
-    if (!this.ctx || !this.music || this.themeOn) return;
-    const buf = this.buffers.get("theme");
+  private startTheme(name = this.themeName) {
+    if (!this.ctx || !this.music) return;
+    const buf = this.buffers.get(name);
     if (!buf) return;
+    if (this.themeSrc) {
+      try {
+        this.themeSrc.stop();
+      } catch {
+        /* already stopped */
+      }
+      this.themeSrc.disconnect();
+      this.themeSrc = null;
+    }
+    this.themeName = name;
     this.themeOn = true;
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
@@ -160,6 +205,13 @@ export class JuiceAudio {
     src.connect(this.music);
     src.start();
     this.themeSrc = src;
+  }
+
+  playBed(act2: boolean) {
+    const name = act2 ? "theme2" : "theme";
+    if (this.themeOn && this.themeName === name) return;
+    this.unlock();
+    this.startTheme(name);
   }
 
   pump() {
