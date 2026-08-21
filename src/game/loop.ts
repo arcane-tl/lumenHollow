@@ -258,7 +258,8 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
       sim.player.y = y;
       sim.player.vx = 0;
       sim.player.vy = 0;
-      sim.camera.x = Math.max(0, x - sim.viewW * 0.4);
+      const maxX = Math.max(0, sim.world.width - (sim.viewW || 960));
+      sim.camera.x = Math.max(0, Math.min(maxX, x - sim.viewW * 0.4));
     },
     setVel: (vx: number, vy: number) => {
       if (!sim) return;
@@ -312,6 +313,8 @@ export function mountGame(canvas: HTMLCanvasElement): GameHandle {
             })),
             flag: { ...sim.world.flag },
             width: sim.world.width,
+            viewW: sim.viewW,
+            camera: { x: sim.camera.x, look: sim.camera.look },
             bolts: (sim.world.bolts ?? []).map((b) => ({ x: b.x, y: b.y, w: b.w, h: b.h, vy: b.vy })),
             crumbles: sim.world.platforms
               .filter((p) => p.crumble)

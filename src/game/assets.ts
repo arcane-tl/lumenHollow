@@ -44,6 +44,7 @@ export interface GameImages {
   spout: HTMLImageElement;
   pipeRiser: HTMLImageElement;
   cap: HTMLImageElement;
+  bounceIron: HTMLImageElement;
 }
 
 function load(src: string): Promise<HTMLImageElement> {
@@ -103,6 +104,7 @@ export async function loadImages(): Promise<GameImages> {
     spout,
     pipeRiser,
     cap,
+    bounceIron,
   ] = await Promise.all([
     load("/game/map/sky.png?v=hd3"),
     load("/game/map/far.png?v=hd3"),
@@ -148,7 +150,8 @@ export async function loadImages(): Promise<GameImages> {
     load("/game/sprites/drip.png"),
     load("/game/sprites/spout.png"),
     load("/game/sprites/pipe-riser.png"),
-    load("/game/sprites/platform-cap.png"),
+    load("/game/sprites/platform-cap.png?v=stool1"),
+    load("/game/sprites/platform-bounce-iron.png?v=stool1"),
   ]);
   return {
     sky,
@@ -196,5 +199,6 @@ export async function loadImages(): Promise<GameImages> {
     spout,
     pipeRiser,
     cap,
+    bounceIron,
   };
 }

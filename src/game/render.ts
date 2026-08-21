@@ -155,14 +155,18 @@ function drawParallax(
   const destH = viewH + 80;
   const aspectW = Math.round(destH * (img.width / Math.max(1, img.height - srcTop)));
   const coverW = viewW + 40;
-  const noWrapW = worldW > 0 ? Math.ceil((Math.max(0, worldW - viewW) * factor + viewW)) : 0;
+  const travel = Math.max(0, worldW - viewW);
+  const noWrapW = worldW > 0 ? Math.ceil(travel * factor + viewW + 160) : 0;
   const destW = Math.max(coverW, aspectW, noWrapW);
   const shift = wrap(camX * factor, destW);
   const x0 = -wrap(shift, destW);
   blitLayer(ctx, img, x0 - 1, yOff, destW + 2, destH, false, srcTop);
-  blitLayer(ctx, img, x0 + destW - 1, yOff, destW + 2, destH, flipSecond, srcTop);
-  if (!flipSecond) {
-    blitLayer(ctx, img, x0 + destW * 2 - 1, yOff, destW + 2, destH, false, srcTop);
+  const firstEnd = x0 + destW;
+  if (firstEnd < viewW + 4) {
+    blitLayer(ctx, img, x0 + destW - 1, yOff, destW + 2, destH, flipSecond, srcTop);
+    if (!flipSecond) {
+      blitLayer(ctx, img, x0 + destW * 2 - 1, yOff, destW + 2, destH, false, srcTop);
+    }
   }
 }
 
@@ -264,31 +268,13 @@ function drawBounce(ctx: CanvasRenderingContext2D, images: GameImages | null, pl
   ctx.save();
   ctx.translate(cx, plat.y);
   ctx.scale(sx, sy);
-  if (plat.sprite === "iron") {
-    ctx.strokeStyle = "#6a4a38";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    const coils = 5;
-    const sh = 36;
-    for (let i = 0; i <= coils * 10; i++) {
-      const t = i / (coils * 10);
-      const x = Math.sin(t * coils * Math.PI * 2) * 9;
-      const y = 6 + t * sh;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.fillStyle = "#2a1814";
-    ctx.fillRect(-plat.w / 2 - 1, -2, plat.w + 2, plat.h + 6);
-    if (images?.iron) {
-      drawNine(ctx, images.iron, { x: -plat.w / 2, y: -2, w: plat.w, h: plat.h + 4 }, true);
-    }
-  } else if (images?.cap) {
-    const visW = plat.w + 22;
-    const visH = 68;
-    ctx.drawImage(images.cap, -visW / 2, -8, visW, visH);
+  const img = plat.sprite === "iron" ? images?.bounceIron : images?.cap;
+  if (img) {
+    const visW = plat.w + 26;
+    const visH = Math.min(96, Math.round(visW * (img.height / img.width)));
+    ctx.drawImage(img, -visW / 2, -6, visW, visH);
   } else {
-    ctx.fillStyle = "#4a6a38";
+    ctx.fillStyle = plat.sprite === "iron" ? "#3a2a24" : "#4a6a38";
     ctx.fillRect(-plat.w / 2, -2, plat.w, plat.h + 4);
   }
   ctx.restore();
@@ -734,17 +720,20 @@ export function renderWorld(
         : sim.world.theme === "cinder"
           ? { sky: images.cinderSky, far: images.cinderFar, mid: images.cinderMid, near: images.cinderNear }
           : { sky: images.sky, far: images.far, mid: images.mid, near: images.near };
+    const worldW = sim.world.width;
+    ctx.imageSmoothingQuality = "medium";
     if (act2) {
-      drawParallax(ctx, pack.sky, 0.03, -40, cx, vw, vh, 0, false);
-      drawParallax(ctx, pack.far, 0.1, -16, cx, vw, vh, 0, false);
-      drawParallax(ctx, pack.mid, 0.22, -8, cx, vw, vh, 0, false);
-      drawParallax(ctx, pack.near, 0.4, 0, cx, vw, vh, 0, false);
+      drawParallax(ctx, pack.sky, 0.03, -40, cx, vw, vh, 0, false, worldW);
+      drawParallax(ctx, pack.far, 0.1, -16, cx, vw, vh, 0, false, worldW);
+      drawParallax(ctx, pack.mid, 0.22, -8, cx, vw, vh, 0, false, worldW);
+      drawParallax(ctx, pack.near, 0.4, 0, cx, vw, vh, 0, false, worldW);
     } else {
-      drawParallax(ctx, pack.sky, 0.03, -80, cx, vw, vh, Math.round(pack.sky.height * 0.62), true);
-      drawParallax(ctx, pack.far, 0.1, -72, cx, vw, vh, Math.round(pack.far.height * 0.22), true);
-      drawParallax(ctx, pack.mid, 0.22, -28, cx, vw, vh, Math.round(pack.mid.height * 0.08), true);
-      drawParallax(ctx, pack.near, 0.4, -4, cx, vw, vh, 0, true);
+      drawParallax(ctx, pack.sky, 0.03, -80, cx, vw, vh, Math.round(pack.sky.height * 0.62), true, worldW);
+      drawParallax(ctx, pack.far, 0.1, -72, cx, vw, vh, Math.round(pack.far.height * 0.22), true, worldW);
+      drawParallax(ctx, pack.mid, 0.22, -28, cx, vw, vh, Math.round(pack.mid.height * 0.08), true, worldW);
+      drawParallax(ctx, pack.near, 0.4, -4, cx, vw, vh, 0, true, worldW);
     }
+    ctx.imageSmoothingQuality = "high";
   }
 
   ctx.fillStyle = theme.veil;

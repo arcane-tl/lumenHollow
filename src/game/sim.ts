@@ -581,6 +581,11 @@ export function stepSim(sim: Sim, actions: Actions, dt: number): StepEvents {
     return events;
   }
 
+  if (sim.won) {
+    p.vx = 0;
+    p.vy = 0;
+  }
+
   movePlatforms(sim.world, sim.time);
   for (const plat of sim.world.platforms) {
     if (plat.squash && plat.squash > 0) plat.squash = Math.max(0, plat.squash - dt);
@@ -598,7 +603,7 @@ export function stepSim(sim: Sim, actions: Actions, dt: number): StepEvents {
 
   const slick = p.grounded && p.ride?.kind === "slick";
   const accel = p.grounded ? (slick ? SLICK_ACCEL : ACCEL_GROUND) : ACCEL_AIR;
-  if (actions.moveX !== 0) {
+  if (!sim.won && actions.moveX !== 0) {
     p.vx += actions.moveX * accel * dt;
     p.facing = actions.moveX > 0 ? 1 : -1;
   } else if (p.grounded) {
@@ -624,7 +629,7 @@ export function stepSim(sim: Sim, actions: Actions, dt: number): StepEvents {
   const canGroundJump = (p.grounded || p.coyote > 0) && p.jumpsLeft > 0;
   const canAirJump = !p.grounded && p.coyote <= 0 && p.jumpsLeft > 0;
 
-  if (wantJump && (canGroundJump || canAirJump)) {
+  if (!sim.won && wantJump && (canGroundJump || canAirJump)) {
     const fromGround = canGroundJump;
     p.vy = fromGround ? JUMP_VEL : DOUBLE_JUMP_VEL;
     p.grounded = false;
@@ -804,7 +809,6 @@ export function stepSim(sim: Sim, actions: Actions, dt: number): StepEvents {
   sim.camera.look += (lookTarget - sim.camera.look) * Math.min(1, 5 * dt);
   const maxX = Math.max(0, sim.world.width - vw);
   const center = p.x + p.w / 2 - vw / 2;
-  sim.camera.look = Math.max(Math.min(0, -center), Math.min(Math.max(0, maxX - center), sim.camera.look));
   const targetX = Math.max(0, Math.min(maxX, center + sim.camera.look));
   sim.camera.x += (targetX - sim.camera.x) * Math.min(1, 10 * dt);
   sim.camera.x = Math.max(0, Math.min(maxX, sim.camera.x));
